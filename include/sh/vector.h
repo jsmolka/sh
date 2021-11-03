@@ -2,12 +2,20 @@
 
 #include <cstddef>
 
-namespace dz {
+namespace sh {
 
-template <typename T, std::size_t kSize>
+template <typename T, std::size_t kSize = 0>
 class vector {
  private:
   T stack_[kSize];
 };
 
-}  // namespace dz
+template <typename T>
+class vector<T, 0> {
+ private:
+  T* data_;
+  T* head_;
+  T* last_;
+};
+
+}  // namespace sh
