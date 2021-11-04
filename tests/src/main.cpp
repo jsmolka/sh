@@ -1,3 +1,5 @@
 #include "tests_vector.h"
 
-int main() { tests_vector(); }
+int main() {
+  tests_vector();
+}

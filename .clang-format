@@ -1,6 +1,11 @@
 ﻿---
 BasedOnStyle: Google
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortLambdasOnASingleLine: Empty
+AllowShortLoopsOnASingleLine: 'false'
+ColumnLimit: '100'
 IndentPPDirectives: AfterHash
+IndentRequires: 'true'
 IndentWidth: '2'
 Language: Cpp
 TabWidth: '2'

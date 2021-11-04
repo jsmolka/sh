@@ -2,13 +2,21 @@
 
 #include <sh/vector.h>
 
+#include <iostream>
+#include <memory>
+
 #include "ut.h"
 
-auto sum(auto... args) { return (args + ...); }
-
 void tests_vector() {
-  "sum"_test = [] {
-    expect(sum(1, 2) == 3_i);
-    expect(sum(1, 3) == 4_i);
-  };
+  sh::vector<int> x;
+  x.resize(10, 0);
+
+  for (const auto& p : x) {
+    std::printf("%d\n", p);
+  }
+  std::printf("--\n");
+  x.resize(5);
+  for (const auto& p : x) {
+    std::printf("%d\n", p);
+  }
 }
