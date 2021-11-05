@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="sh\scope_guard.h" />
     <ClInclude Include="sh\utility.h" />
     <ClInclude Include="sh\vector.h" />
   </ItemGroup>

@@ -1,8 +1,12 @@
 #pragma once
 
+#include <sh/scope_guard.h>
+
+#include <algorithm>
 #include <cassert>
 #include <concepts>
 #include <memory>
+#include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -148,17 +152,90 @@ class vector<T, 0> {
 
   void reserve(size_type capacity) {
     if (capacity > this->capacity()) {
-      grow(capacity);
+      reallocate(capacity);
     }
   }
 
-  // shrink_to_fit
+  // Todo: shrink_to_fit
 #pragma endregion
 
 #pragma region modifiers
   void clear() {
     std::destroy(begin(), end());
     head_ = data_;
+  }
+
+  template <typename... Args>
+  // requires std::constructible_from<value_type, Args...>
+  auto emplace(const_iterator pos, Args&&... args) -> iterator {
+    const auto index = std::distance(cbegin(), pos);
+    assert(index <= size());
+    grow_to_fit();
+    std::move_backward(begin() + index, end(), end() + 1);
+    head_++;
+    return std::construct_at(begin() + index, std::forward<Args>(args)...);
+  }
+
+  auto insert(const_iterator pos, const value_type& value) -> iterator {
+    return emplace(pos, value);
+  }
+
+  auto insert(const_iterator pos, value_type&& value) -> iterator {
+    return emplace(pos, std::move(value));
+  }
+
+  auto insert(const_iterator pos, size_type count, const value_type& value) -> iterator {
+    const auto index = std::distance(cbegin(), pos);
+    assert(index <= size());
+    if (count == 0) {
+      return pos;
+    }
+    grow_to_fit(count);
+    auto item = std::move_backward(begin() + index, end(), end() + count) - 1;
+    while (count--) {
+      *item++ = value;
+    }
+    return begin() + index;
+  }
+
+  template <typename Iterator>
+  auto insert(const_iterator pos, Iterator first, Iterator last) -> iterator {
+    const auto index = std::distance(cbegin(), pos);
+    const auto count = std::distance(first, last);
+    assert(index <= size());
+    if (count == 0) {
+      return pos;
+    }
+    grow_to_fit(count);
+    auto item = std::move_backward(begin() + index, end(), end() + count) - 1;
+    while (first != last) {
+      *item++ = *first++;
+    }
+    return begin() + index;
+  }
+
+  auto insert(const_iterator pos, std::initializer_list<value_type> values) -> iterator {
+    return insert(pos, values.begin(), end());
+  }
+
+  auto erase(const_iterator pos) -> iterator {
+    std::move(pos + 1, end(), pos);
+    std::destroy_at(--head_);
+    return pos;
+  }
+
+  auto erase(const_iterator pos, size_type count) -> iterator {
+    std::move(pos + count, end(), pos);
+    std::destroy(end());
+    return pos;
+  }
+
+  auto erase(const_iterator first, const_iterator last) -> iterator {
+    if (first == last) {
+      return last;
+    } else {
+      return erase(first, std::distance(first, last));
+    }
   }
 
   void resize(size_type size, const value_type& value) {
@@ -168,24 +245,6 @@ class vector<T, 0> {
   void resize(size_type size) {
     resize_impl(size);
   }
-
-  template <typename... Args>
-    requires std::constructible_from<value_type, Args...> iterator emplace(const_iterator pos,
-                                                                           Args&&... args) {
-      return nullptr;
-    }
-
-  iterator insert(const_iterator pos, const value_type& value) {
-    return nullptr;
-  }
-
-  iterator insert(const_iterator pos, value_type&& value) {
-    return nullptr;
-  }
-
-  // Todo: insert
-  // Todo: emplace
-  // Todo: erase
 
   template <typename... Args>
     requires std::constructible_from<value_type, Args...>
@@ -209,11 +268,13 @@ class vector<T, 0> {
 #pragma endregion
 
  private:
+  using storage = std::aligned_storage_t<sizeof(value_type), alignof(value_type)>;
+
   template <typename... Args>
     requires std::constructible_from<value_type, Args...>
   void resize_impl(size_type size, Args&&... args) {
     if (size > capacity()) {
-      grow(size);
+      reallocate(size);
       for (; head_ != last_; ++head_) {
         new (head_) value_type(std::forward<Args>(args)...);
       }
@@ -225,22 +286,87 @@ class vector<T, 0> {
 
   void grow_to_fit() {
     if (head_ == last_) {
-      grow(data_ ? 2 * capacity() : 1);
+      reallocate(data_ ? 2 * capacity() : 1);
     }
   }
 
-  void grow(size_type capacity) {
+  void grow_to_fit(size_type count) {
+    if (head_ + count > last_) {
+      reallocate(capacity() + count);
+    }
+  }
+
+  auto reallocate_copy(pointer dest) -> pointer {
+    assert(data_ && dest);
+    dest = std::copy(begin(), end(), dest);
+    delete data_;
+    return dest;
+  }
+
+  auto reallocate_nothrow_move_construct(pointer dest) -> pointer {
+    assert(data_ && dest);
+    for (auto& value : *this) {
+      std::construct_at(dest++, std::move(value));
+    }
+    delete data_;
+    return dest;
+  }
+
+  auto reallocate_move_construct(pointer dest) -> pointer {
+    assert(data_ && dest);
+    scope_guard cleanup([dest]() {
+      delete dest;
+    });
+    dest = std::uninitialized_move(begin(), end(), dest);
+    delete data_;
+    cleanup.release();
+    return dest;
+  }
+
+  auto reallocate_nothrow_copy_construct(pointer dest) -> pointer {
+    assert(data_ && dest);
+    for (const auto& value : *this) {
+      std::construct_at(dest++, value);
+    }
+    delete data_;
+    return dest;
+  }
+
+  auto reallocate_copy_construct(pointer dest) -> pointer {
+    assert(data_ && dest);
+    scope_guard cleanup([dest]() {
+      delete dest;
+    });
+    dest = std::uninitialized_copy(begin(), end(), dest);
+    delete data_;
+    cleanup.release();
+    return dest;
+  }
+
+  void reallocate(size_type capacity) {
     assert(capacity > 0);
 
-    const auto size = this->size();
-    data_ = data_ ? static_cast<pointer>(std::realloc(data_, sizeof(value_type) * capacity))
-                  : static_cast<pointer>(std::malloc(sizeof(value_type) * capacity));
+    pointer data_new = reinterpret_cast<pointer>(new storage[capacity]);
+    pointer head_new;
 
-    if (!data_) {
-      throw std::bad_alloc();
+    if (data_) {
+      if constexpr (std::is_trivially_copyable_v<value_type>) {
+        head_new = reallocate_copy(data_new);
+      } else if constexpr (std::is_nothrow_move_constructible_v<value_type>) {
+        head_new = reallocate_nothrow_move_construct(data_new);
+      } else if constexpr (std::is_move_constructible_v<value_type>) {
+        head_new = reallocate_move_construct(data_new);
+      } else if constexpr (std::is_nothrow_copy_constructible_v<value_type>) {
+        head_new = reallocate_nothrow_copy_construct(data_new);
+      } else {
+        head_new = reallocate_copy_construct(data_new);
+      }
+    } else {
+      head_new = data_new;
     }
 
-    head_ = data_ + size;
+    data_ = data_new;
+    head_ = head_new;
     last_ = data_ + capacity;
   }
 
