@@ -1,17 +1,37 @@
 #pragma once
 
-#include <sh/scope_guard.h>
-
 #include <algorithm>
 #include <cassert>
 #include <concepts>
+#include <cstring>
 #include <memory>
-#include <string>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 namespace sh {
+
+namespace {
+
+template <typename T>
+class delete_guard {
+ public:
+  delete_guard(T* pointer) : pointer_(pointer) {}
+
+  ~delete_guard() {
+    if (pointer_) {
+      delete pointer_;
+    }
+  }
+
+  void release() {
+    pointer_ = nullptr;
+  }
+
+ private:
+  T* pointer_;
+};
+
+}  // namespace
 
 template <typename T, std::size_t kSize = 0>
 class vector {
@@ -219,6 +239,7 @@ class vector<T, 0> {
   }
 
   auto erase(const_iterator pos) -> iterator {
+    static_assert(std::is_move_assignable_v<value_type>);
     std::move(pos + 1, end(), pos);
     std::destroy_at(--head_);
     return pos;
@@ -298,9 +319,10 @@ class vector<T, 0> {
 
   auto reallocate_copy(pointer dest) -> pointer {
     assert(data_ && dest);
-    dest = std::copy(begin(), end(), dest);
+    const auto size = this->size();
+    std::memcpy(dest, begin(), sizeof(value_type) * size);
     delete data_;
-    return dest;
+    return dest + size;
   }
 
   auto reallocate_nothrow_move_construct(pointer dest) -> pointer {
@@ -314,12 +336,10 @@ class vector<T, 0> {
 
   auto reallocate_move_construct(pointer dest) -> pointer {
     assert(data_ && dest);
-    scope_guard cleanup([dest]() {
-      delete dest;
-    });
+    delete_guard guard(dest);
     dest = std::uninitialized_move(begin(), end(), dest);
     delete data_;
-    cleanup.release();
+    guard.release();
     return dest;
   }
 
@@ -334,12 +354,10 @@ class vector<T, 0> {
 
   auto reallocate_copy_construct(pointer dest) -> pointer {
     assert(data_ && dest);
-    scope_guard cleanup([dest]() {
-      delete dest;
-    });
+    delete_guard guard(dest);
     dest = std::uninitialized_copy(begin(), end(), dest);
     delete data_;
-    cleanup.release();
+    guard.release();
     return dest;
   }
 

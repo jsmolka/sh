@@ -1,11 +1,19 @@
 #include "tests_vector.h"
 
+#include <compare>
+
 #include <sh/vector.h>
 
 #include "ut.h"
 
 struct trivially_copyable {
-  int x;
+  trivially_copyable(int value) : value(value) {}
+  trivially_copyable(const trivially_copyable&) noexcept = default;
+  trivially_copyable(trivially_copyable&&) noexcept = default;
+  trivially_copyable& operator=(trivially_copyable&&) noexcept = default;
+  trivially_copyable& operator=(const trivially_copyable&) noexcept = default;
+  auto operator<=>(const trivially_copyable&) const = default;
+  int value;
 };
 
 static_assert(std::is_trivially_copyable_v<trivially_copyable>);
@@ -15,37 +23,45 @@ static_assert(std::is_nothrow_copy_constructible_v<trivially_copyable>);
 static_assert(std::is_copy_constructible_v<trivially_copyable>);
 
 struct nothrow_move_constructible {
-  nothrow_move_constructible(int x) : x(std::to_string(x)) {}
-  nothrow_move_constructible(nothrow_move_constructible&&) = default;
-
-  std::string x;
+  nothrow_move_constructible(int value) : value(std::to_string(value)) {}
+  nothrow_move_constructible(nothrow_move_constructible&&) noexcept = default;
+  nothrow_move_constructible(const nothrow_move_constructible&) noexcept = default;
+  nothrow_move_constructible& operator=(nothrow_move_constructible&&) noexcept = default;
+  nothrow_move_constructible& operator=(const nothrow_move_constructible&) noexcept = default;
+  auto operator<=>(const nothrow_move_constructible&) const = default;
+  std::string value;
 };
 
 static_assert(!std::is_trivially_copyable_v<nothrow_move_constructible>);
 static_assert(std::is_nothrow_move_constructible_v<nothrow_move_constructible>);
 static_assert(std::is_move_constructible_v<nothrow_move_constructible>);
-static_assert(!std::is_nothrow_copy_constructible_v<nothrow_move_constructible>);
-static_assert(!std::is_copy_constructible_v<nothrow_move_constructible>);
+static_assert(std::is_nothrow_copy_constructible_v<nothrow_move_constructible>);
+static_assert(std::is_copy_constructible_v<nothrow_move_constructible>);
 
 struct move_constructible {
-  move_constructible(int x) : x(std::to_string(x)) {}
+  move_constructible(int value) : value(std::to_string(value)) {}
   move_constructible(move_constructible&&) noexcept(false) = default;
-
-  std::string x;
+  move_constructible(const move_constructible&) noexcept = default;
+  move_constructible& operator=(move_constructible&&) noexcept = default;
+  move_constructible& operator=(const move_constructible&) noexcept = default;
+  auto operator<=>(const move_constructible&) const = default;
+  std::string value;
 };
 
 static_assert(!std::is_trivially_copyable_v<move_constructible>);
 static_assert(!std::is_nothrow_move_constructible_v<move_constructible>);
 static_assert(std::is_move_constructible_v<move_constructible>);
-static_assert(!std::is_nothrow_copy_constructible_v<move_constructible>);
-static_assert(!std::is_copy_constructible_v<move_constructible>);
+static_assert(std::is_nothrow_copy_constructible_v<move_constructible>);
+static_assert(std::is_copy_constructible_v<move_constructible>);
 
 struct nothrow_copy_constructible {
-  nothrow_copy_constructible(int x) : x(std::to_string(x)) {}
-  nothrow_copy_constructible(nothrow_copy_constructible&&) = delete;
+  nothrow_copy_constructible(int value) : value(std::to_string(value)) {}
+  nothrow_copy_constructible(nothrow_copy_constructible&&) noexcept(false) = delete;
   nothrow_copy_constructible(const nothrow_copy_constructible&) noexcept = default;
-
-  std::string x;
+  nothrow_copy_constructible& operator=(nothrow_copy_constructible&&) = default;
+  nothrow_copy_constructible& operator=(const nothrow_copy_constructible&) = default;
+  auto operator<=>(const nothrow_copy_constructible&) const = default;
+  std::string value;
 };
 
 static_assert(!std::is_trivially_copyable_v<nothrow_copy_constructible>);
@@ -55,18 +71,34 @@ static_assert(std::is_nothrow_copy_constructible_v<nothrow_copy_constructible>);
 static_assert(std::is_copy_constructible_v<nothrow_copy_constructible>);
 
 struct copy_constructible {
-  copy_constructible(int x) : x(std::to_string(x)) {}
+  copy_constructible(int value) : value(std::to_string(value)) {}
   copy_constructible(copy_constructible&&) = delete;
   copy_constructible(const copy_constructible&) noexcept(false) = default;
-
-  std::string x;
+  copy_constructible& operator=(copy_constructible&&) = default;
+  copy_constructible& operator=(const copy_constructible&) = default;
+  auto operator<=>(const copy_constructible&) const = default;
+  std::string value;
 };
+
+static_assert(!std::is_trivially_copyable_v<copy_constructible>);
+static_assert(!std::is_nothrow_move_constructible_v<copy_constructible>);
+static_assert(!std::is_move_constructible_v<copy_constructible>);
+static_assert(!std::is_nothrow_copy_constructible_v<copy_constructible>);
+static_assert(std::is_copy_constructible_v<copy_constructible>);
 
 template <typename T>
 void test_vector_erase() {
-  const auto name = make_name("vector<", typeid(T).name(), ">::erase");
+  const auto name = make_name("vector<{}>::erase(const_iterator)", typeid(T).name());
   test(name) = []() {
-    expect(1 == 2);
+    sh::vector<T> v;
+    v.emplace_back(0);
+    v.emplace_back(1);
+    v.emplace_back(2);
+    expect(v.size() == 3);
+
+    auto i = v.erase(v.begin() + 1);
+    expect(v.size() == 2);
+    expect(*i == T{2});
   };
 }
 

@@ -21,7 +21,7 @@
     <ClInclude Include="sh\utility.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="sh\scope_guard.h">
+    <ClInclude Include="sh\fmt.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

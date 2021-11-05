@@ -10,5 +10,11 @@ IndentWidth: '2'
 Language: Cpp
 TabWidth: '2'
 UseTab: Never
-
+IncludeCategories:
+  - Regex:           '^<.*\..*>$'
+    Priority:        2
+  - Regex:           '^<.*>$'
+    Priority:        1
+  - Regex:           '.*'
+    Priority:        3
 ...
