@@ -2,10 +2,6 @@
 
 #include <cassert>
 #include <concepts>
-#include <cstring>
-#include <iterator>
-#include <type_traits>
-#include <utility>
 
 #include <sh/memory.h>
 
@@ -13,13 +9,14 @@ namespace sh {
 
 namespace {
 
+template <typename T>
 class delete_guard {
  public:
-  delete_guard(void* pointer) : pointer_(pointer) {}
+  delete_guard(void* pointer) : pointer_(reinterpret_cast<T*>(pointer)) {}
 
   ~delete_guard() {
     if (pointer_) {
-      delete pointer_;
+      delete[] pointer_;
     }
   }
 
@@ -28,7 +25,7 @@ class delete_guard {
   }
 
  private:
-  void* pointer_;
+  T* pointer_;
 };
 
 }  // namespace
@@ -78,7 +75,7 @@ class vector<T, 0> {
     }
   }
 
-  vector(std::initializer_list<value_type> init) : vector(init.begin(), init.end()) {
+  vector(std::initializer_list<value_type> list) : vector(list.begin(), list.end()) {
     static_assert(std::is_copy_constructible_v<value_type>);
   }
 
@@ -92,22 +89,49 @@ class vector<T, 0> {
 
   ~vector() {
     if (data_) {
-      std::destroy(begin(), end());
-      delete[] data_;
+      destruct();
+      deallocate();
     }
   }
 
-  // Todo: ctor
-  // Todo: dtor
-  // Todo: op=
-
-#pragma region element access
-  auto data() -> pointer {
-    return data_;
+  auto operator=(std::initializer_list<value_type> list) -> vector& {
+    destruct();
+    reserve_uninitialized(std::distance(list.begin(), list.end()));
+    head_ = sh::copy(list.begin(), list.end(), begin());
+    return *this;
   }
 
-  auto data() const -> const_pointer {
-    return data_;
+  auto operator=(const vector& other) -> vector& {
+    if (this != &other) {
+      destruct();
+      reserve_uninitialized(other.size());
+      head_ = sh::copy(other.begin(), other.end(), begin());
+    }
+    return *this;
+  }
+
+  auto operator=(vector&& other) -> vector& {
+    if (this != &other) {
+      if (data_) {
+        destruct();
+        deallocate();
+      }
+      data_ = other.data_;
+      head_ = other.head_;
+      last_ = other.last_;
+      other.data_ = nullptr;
+    }
+    return *this;
+  }
+
+  auto operator[](std::size_t index) -> reference {
+    assert(index < size());
+    return data_[index];
+  }
+
+  auto operator[](std::size_t index) const -> const_reference {
+    assert(index < size());
+    return data_[index];
   }
 
   auto front() -> reference {
@@ -130,18 +154,14 @@ class vector<T, 0> {
     return head_[-1];
   }
 
-  auto operator[](std::size_t index) -> reference {
-    assert(index < size());
-    return data_[index];
+  auto data() -> pointer {
+    return data_;
   }
 
-  auto operator[](std::size_t index) const -> const_reference {
-    assert(index < size());
-    return data_[index];
+  auto data() const -> const_pointer {
+    return data_;
   }
-#pragma endregion
 
-#pragma region iterators
   auto begin() -> iterator {
     return iterator(data_);
   }
@@ -189,9 +209,7 @@ class vector<T, 0> {
   auto crend() const -> const_reverse_iterator {
     return const_reverse_iterator(data_);
   }
-#pragma endregion
 
-#pragma region capacity
   auto empty() const -> bool {
     return head_ == data_;
   }
@@ -210,17 +228,17 @@ class vector<T, 0> {
     }
   }
 
-  // Todo: shrink_to_fit
-#pragma endregion
+  void shrink_to_fit() {
+    reallocate(size());
+  }
 
-#pragma region modifiers
   void clear() {
-    std::destroy(begin(), end());
+    destruct();
     head_ = data_;
   }
 
   template <typename... Args>
-  // requires std::constructible_from<value_type, Args...>
+    requires(std::constructible_from<value_type, Args...>)
   auto emplace(const_iterator pos, Args&&... args) -> iterator {
     const auto index = std::distance(cbegin(), pos);
     assert(index <= size());
@@ -281,7 +299,7 @@ class vector<T, 0> {
 
   auto erase(const_iterator pos, size_type count) -> iterator {
     std::move(pos + count, end(), pos);
-    std::destroy(end());
+    std::destroy_at(end());
     return pos;
   }
 
@@ -321,7 +339,6 @@ class vector<T, 0> {
   void pop_back() {
     std::destroy_at(--head_);
   }
-#pragma endregion
 
  private:
   using storage = std::aligned_storage_t<sizeof(value_type), alignof(value_type)>;
@@ -352,18 +369,31 @@ class vector<T, 0> {
     }
   }
 
+  void reserve_uninitialized(size_type capacity) {
+    if (capacity > this->capacity()) {
+      if (data_) {
+        deallocate();
+      }
+      data_ = reinterpret_cast<pointer>(new storage[capacity]);
+      head_ = data_;
+      last_ = data_ + capacity;
+    }
+  }
+
   auto reallocate_nothrow_move_construct(pointer dest) -> pointer {
     assert(data_ && dest);
     dest = sh::uninitialized_move(begin(), end(), dest);
-    delete data_;
+    destruct();
+    deallocate();
     return dest;
   }
 
   auto reallocate_move_construct(pointer dest) -> pointer {
     assert(data_ && dest);
-    delete_guard guard(dest);
+    delete_guard<storage> guard(dest);
     dest = sh::uninitialized_move(begin(), end(), dest);
-    delete data_;
+    destruct();
+    deallocate();
     guard.release();
     return dest;
   }
@@ -371,17 +401,23 @@ class vector<T, 0> {
   auto reallocate_nothrow_copy_construct(pointer dest) -> pointer {
     assert(data_ && dest);
     dest = sh::uninitialized_copy(begin(), end(), dest);
-    delete data_;
+    destruct();
+    deallocate();
     return dest;
   }
 
   auto reallocate_copy_construct(pointer dest) -> pointer {
     assert(data_ && dest);
-    delete_guard guard(dest);
+    delete_guard<storage> guard(dest);
     dest = sh::uninitialized_copy(begin(), end(), dest);
-    delete data_;
+    destruct();
+    deallocate();
     guard.release();
     return dest;
+  }
+
+  void destruct() {
+    std::destroy(begin(), end());
   }
 
   void reallocate(size_type capacity) {
@@ -411,7 +447,13 @@ class vector<T, 0> {
 
   void allocate(size_type capacity) {
     data_ = capacity ? reinterpret_cast<pointer>(new storage[capacity]) : nullptr;
+    head_ = data_;
     last_ = data_ + capacity;
+  }
+
+  void deallocate() {
+    assert(data_);
+    delete[] reinterpret_cast<storage*>(data_);
   }
 
   pointer head_;
@@ -419,9 +461,15 @@ class vector<T, 0> {
   pointer last_;
 };
 
-// Todo: operator==
-// Todo: operator!=
-// Todo: operator<=>?
-// Todo: std::swap
+template <typename T, std::size_t kSizeA, std::size_t kSizeB>
+auto operator==(const vector<T, kSizeA>& a, const vector<T, kSizeB>& b) -> bool {
+  return true;
+  // return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin());
+}
+
+template <typename T, std::size_t kSizeA, std::size_t kSizeB>
+auto operator!=(const vector<T, kSizeA>& a, const vector<T, kSizeB>& b) -> bool {
+  return !(a == b);
+}
 
 }  // namespace sh

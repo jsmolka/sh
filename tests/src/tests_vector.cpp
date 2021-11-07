@@ -93,7 +93,12 @@ static_assert(!std::is_nothrow_copy_constructible_v<copy_constructible>);
 static_assert(std::is_copy_constructible_v<copy_constructible>);
 
 template <typename T>
-void test_vector_constructor() {
+auto make_vector_test(std::string_view function) {
+  return make_test("vector<{}>::{}", typeid(T).name(), function);
+}
+
+template <typename T>
+void tests_vector_constructor() {
   make_test("vector<{}>::vector()", typeid(T).name()) = []() {
     sh::vector<T> v1;
     expect(v1.size() == 0);
@@ -146,7 +151,7 @@ void test_vector_constructor() {
   };
 
   make_test("vector<{}>::vector(initializer_list)", typeid(T).name()) = []() {
-    sh::vector<T> v1 = {0, 1, 2};
+    sh::vector<T> v1{0, 1, 2};
     expect(v1.size() == 3);
     expect(v1.capacity() == 3);
     expect(v1[0] == T{0});
@@ -162,7 +167,7 @@ void test_vector_constructor() {
   };
 
   make_test("vector<{}>::vector(const vector&)", typeid(T).name()) = []() {
-    sh::vector<T> v1 = {0, 1, 2};
+    sh::vector<T> v1{0, 1, 2};
     sh::vector<T> v2(v1);
     expect(v2.size() == 3);
     expect(v2.capacity() == 3);
@@ -172,7 +177,7 @@ void test_vector_constructor() {
   };
 
   make_test("vector<{}>::vector(vector&&)", typeid(T).name()) = []() {
-    sh::vector<T> v1 = {0, 1, 2};
+    sh::vector<T> v1{0, 1, 2};
     const auto data = v1.data();
     sh::vector<T> v2(std::move(v1));
     expect(v1.data() == nullptr);
@@ -186,30 +191,132 @@ void test_vector_constructor() {
 }
 
 template <typename T>
-void test_vector_erase() {
-  const auto name = make_test("vector<{}>::erase(const_iterator)", typeid(T).name());
-  test(name) = []() {
-    sh::vector<T> v;
-    v.emplace_back(0);
-    v.emplace_back(1);
-    v.emplace_back(2);
-    expect(v.size() == 3);
+void tests_vector_assignment_operator() {
+  make_test("vector<{}>::oprator=(const vector&)", typeid(T).name()) = []() {
+    sh::vector<T> v1{0, 1, 2};
+    sh::vector<T> v2 = v1;
+    expect(v2.size() == 3);
+    expect(v2.capacity() == 3);
+    expect(v2[0] == v1[0]);
+    expect(v2[1] == v1[1]);
+    expect(v2[2] == v1[2]);
+  };
 
-    auto i = v.erase(v.begin() + 1);
-    expect(v.size() == 2);
-    expect(*i == T{2});
+  make_test("vector<{}>::oprator=(vector&&)", typeid(T).name()) = []() {
+    sh::vector<T> v1{0, 1, 2};
+    const auto data = v1.data();
+    sh::vector<T> v2 = std::move(v1);
+    expect(v1.data() == nullptr);
+    expect(v2.data() == data);
+    expect(v2.size() == 3);
+    expect(v2.capacity() == 3);
+    expect(v2[0] == T{0});
+    expect(v2[1] == T{1});
+    expect(v2[2] == T{2});
+  };
+
+  make_test("vector<{}>::oprator=(initializer_list)", typeid(T).name()) = []() {
+    sh::vector<T> v1 = {0, 1, 2};
+    expect(v1.size() == 3);
+    expect(v1.capacity() == 3);
+    expect(v1[0] == T{0});
+    expect(v1[1] == T{1});
+    expect(v1[2] == T{2});
   };
 }
 
+template <typename T>
+void tests_vector_reserve() {
+  make_test("vector<{}>::reserve(size_type)", typeid(T).name()) = []() {
+    sh::vector<T> v1;
+    v1.reserve(10);
+    expect(v1.capacity() == 10);
+    v1.reserve(20);
+    expect(v1.capacity() == 20);
+    v1.reserve(10);
+    expect(v1.capacity() == 20);
+    expect(v1.size() == 0);
+  };
+}
+
+template <typename T>
+void tests_vector_shrink_to_fit() {
+  make_test("vector<{}>::shrink_to_fit()", typeid(T).name()) = []() {
+    sh::vector<T> v1;
+    v1.emplace_back(0);
+    v1.emplace_back(1);
+    v1.emplace_back(2);
+    expect(v1.size() == 3);
+    expect(v1.capacity() == 4);
+    v1.shrink_to_fit();
+    expect(v1.capacity() == 3);
+    expect(v1[0] == T{0});
+    expect(v1[1] == T{1});
+    expect(v1[2] == T{2});
+  };
+}
+
+template <typename T>
+void tests_vector_clear() {
+  make_test("vector<{}>::clear()", typeid(T).name()) = []() {
+    sh::vector<T> v1{0, 1, 2};
+    expect(v1.size() == 3);
+    expect(v1.capacity() == 3);
+    v1.clear();
+    expect(v1.size() == 0);
+    expect(v1.capacity() == 3);
+  };
+}
+
+template <typename T>
+void tests_vector_comparison_operator() {
+  make_vector_test<T>("operator==") = []() {
+    sh::vector<T> v1{0, 1, 2};
+    sh::vector<T> v2{0, 1, 2};
+    bool b = v1 == v2;
+    expect(b);
+  };
+}
+
+// template <typename T>
+// void tests_vector_insert() {
+//  make_test("vector<{}>::insert(const_iterator, const value_type&)", typeid(T).name()) = []() {
+//    sh::vector<T> v1{0, 0};
+//    v1.insert(v1.begin(), 1);
+//    v1.insert(v1.begin() + 2, 2);
+//    v1.insert(v1.end(), 3);
+//  };
+//}
+
 void tests_vector() {
-  test_vector_constructor<trivially_copyable>();
-  test_vector_constructor<nothrow_move_constructible>();
-  test_vector_constructor<move_constructible>();
-  test_vector_constructor<nothrow_copy_constructible>();
-  test_vector_constructor<copy_constructible>();
-  // test_vector_erase<trivially_copyable>();
-  // test_vector_erase<nothrow_move_constructible>();
-  // test_vector_erase<move_constructible>();
-  // test_vector_erase<nothrow_copy_constructible>();
-  // test_vector_erase<copy_constructible>();
+  tests_vector_constructor<trivially_copyable>();
+  tests_vector_constructor<nothrow_move_constructible>();
+  tests_vector_constructor<move_constructible>();
+  tests_vector_constructor<nothrow_copy_constructible>();
+  tests_vector_constructor<copy_constructible>();
+  tests_vector_comparison_operator<trivially_copyable>();
+  tests_vector_comparison_operator<nothrow_move_constructible>();
+  tests_vector_comparison_operator<move_constructible>();
+  tests_vector_comparison_operator<nothrow_copy_constructible>();
+  tests_vector_comparison_operator<copy_constructible>();
+  tests_vector_assignment_operator<trivially_copyable>();
+  tests_vector_assignment_operator<nothrow_move_constructible>();
+  tests_vector_assignment_operator<move_constructible>();
+  tests_vector_assignment_operator<nothrow_copy_constructible>();
+  tests_vector_assignment_operator<copy_constructible>();
+  tests_vector_reserve<trivially_copyable>();
+  tests_vector_reserve<nothrow_move_constructible>();
+  tests_vector_reserve<move_constructible>();
+  tests_vector_reserve<nothrow_copy_constructible>();
+  tests_vector_reserve<copy_constructible>();
+  tests_vector_shrink_to_fit<trivially_copyable>();
+  tests_vector_shrink_to_fit<nothrow_move_constructible>();
+  tests_vector_shrink_to_fit<move_constructible>();
+  tests_vector_shrink_to_fit<nothrow_copy_constructible>();
+  tests_vector_shrink_to_fit<copy_constructible>();
+  tests_vector_clear<trivially_copyable>();
+  tests_vector_clear<nothrow_move_constructible>();
+  tests_vector_clear<move_constructible>();
+  tests_vector_clear<nothrow_copy_constructible>();
+  tests_vector_clear<copy_constructible>();
 }
