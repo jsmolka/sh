@@ -1,21 +1,21 @@
 #pragma once
 
-#include <algorithm>
 #include <cassert>
 #include <concepts>
 #include <cstring>
-#include <memory>
+#include <iterator>
 #include <type_traits>
 #include <utility>
+
+#include <sh/memory.h>
 
 namespace sh {
 
 namespace {
 
-template <typename T>
 class delete_guard {
  public:
-  delete_guard(T* pointer) : pointer_(pointer) {}
+  delete_guard(void* pointer) : pointer_(pointer) {}
 
   ~delete_guard() {
     if (pointer_) {
@@ -28,20 +28,17 @@ class delete_guard {
   }
 
  private:
-  T* pointer_;
+  void* pointer_;
 };
 
 }  // namespace
 
 template <typename T, std::size_t kSize = 0>
-class vector {
-  // Use std::aligned_storage_t<sizeof(T), alignof(T)> to work with objects with no default
-};
+class vector {};
 
 template <typename T>
 class vector<T, 0> {
  public:
-  using self = vector<T>;
   using value_type = T;
   using size_type = std::size_t;
   using difference_type = std::ptrdiff_t;
@@ -54,18 +51,55 @@ class vector<T, 0> {
   using reverse_iterator = std::reverse_iterator<iterator>;
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-#pragma region basic
+  vector() noexcept : data_{}, head_{}, last_{} {}
+
+  vector(size_type count, const value_type& value) {
+    static_assert(std::is_copy_constructible_v<value_type>);
+    allocate(count);
+    head_ = std::uninitialized_fill_n(begin(), count, value);
+  }
+
+  explicit vector(size_type count) : vector(count, {}) {
+    static_assert(std::is_default_constructible_v<value_type>);
+  }
+
+  template <std::random_access_iterator InputIt>
+  vector(InputIt first, InputIt last) {
+    static_assert(std::is_copy_constructible_v<value_type>);
+    allocate(std::distance(first, last));
+    head_ = sh::uninitialized_copy(first, last, begin());
+  }
+
+  template <std::input_iterator InputIt>
+  vector(InputIt first, InputIt last) : vector() {
+    static_assert(std::is_copy_constructible_v<value_type>);
+    for (; first != last; ++first) {
+      push_back(*first);
+    }
+  }
+
+  vector(std::initializer_list<value_type> init) : vector(init.begin(), init.end()) {
+    static_assert(std::is_copy_constructible_v<value_type>);
+  }
+
+  vector(const vector& other) : vector(other.begin(), other.end()) {
+    static_assert(std::is_copy_constructible_v<value_type>);
+  }
+
+  vector(vector&& other) noexcept : data_(other.data_), head_(other.head_), last_(other.last_) {
+    other.data_ = nullptr;
+  }
+
   ~vector() {
     if (data_) {
       std::destroy(begin(), end());
-      std::free(data_);
+      delete[] data_;
     }
   }
 
   // Todo: ctor
   // Todo: dtor
   // Todo: op=
-#pragma endregion
 
 #pragma region element access
   auto data() -> pointer {
@@ -260,10 +294,12 @@ class vector<T, 0> {
   }
 
   void resize(size_type size, const value_type& value) {
+    static_assert(std::is_copy_constructible_v<value_type>);
     resize_impl(size, value);
   }
 
   void resize(size_type size) {
+    static_assert(std::is_default_constructible_v<value_type>);
     resize_impl(size);
   }
 
@@ -271,8 +307,7 @@ class vector<T, 0> {
     requires std::constructible_from<value_type, Args...>
   void emplace_back(Args&&... args) {
     grow_to_fit();
-    new (head_) value_type(std::forward<Args>(args)...);
-    head_++;
+    std::construct_at(head_++, std::forward<Args>(args)...);
   }
 
   void push_back(const value_type& value) {
@@ -317,19 +352,9 @@ class vector<T, 0> {
     }
   }
 
-  auto reallocate_copy(pointer dest) -> pointer {
-    assert(data_ && dest);
-    const auto size = this->size();
-    std::memcpy(dest, begin(), sizeof(value_type) * size);
-    delete data_;
-    return dest + size;
-  }
-
   auto reallocate_nothrow_move_construct(pointer dest) -> pointer {
     assert(data_ && dest);
-    for (auto& value : *this) {
-      std::construct_at(dest++, std::move(value));
-    }
+    dest = sh::uninitialized_move(begin(), end(), dest);
     delete data_;
     return dest;
   }
@@ -337,7 +362,7 @@ class vector<T, 0> {
   auto reallocate_move_construct(pointer dest) -> pointer {
     assert(data_ && dest);
     delete_guard guard(dest);
-    dest = std::uninitialized_move(begin(), end(), dest);
+    dest = sh::uninitialized_move(begin(), end(), dest);
     delete data_;
     guard.release();
     return dest;
@@ -345,9 +370,7 @@ class vector<T, 0> {
 
   auto reallocate_nothrow_copy_construct(pointer dest) -> pointer {
     assert(data_ && dest);
-    for (const auto& value : *this) {
-      std::construct_at(dest++, value);
-    }
+    dest = sh::uninitialized_copy(begin(), end(), dest);
     delete data_;
     return dest;
   }
@@ -355,7 +378,7 @@ class vector<T, 0> {
   auto reallocate_copy_construct(pointer dest) -> pointer {
     assert(data_ && dest);
     delete_guard guard(dest);
-    dest = std::uninitialized_copy(begin(), end(), dest);
+    dest = sh::uninitialized_copy(begin(), end(), dest);
     delete data_;
     guard.release();
     return dest;
@@ -368,9 +391,7 @@ class vector<T, 0> {
     pointer head_new;
 
     if (data_) {
-      if constexpr (std::is_trivially_copyable_v<value_type>) {
-        head_new = reallocate_copy(data_new);
-      } else if constexpr (std::is_nothrow_move_constructible_v<value_type>) {
+      if constexpr (std::is_nothrow_move_constructible_v<value_type>) {
         head_new = reallocate_nothrow_move_construct(data_new);
       } else if constexpr (std::is_move_constructible_v<value_type>) {
         head_new = reallocate_move_construct(data_new);
@@ -388,9 +409,14 @@ class vector<T, 0> {
     last_ = data_ + capacity;
   }
 
-  pointer head_{};
-  pointer data_{};
-  pointer last_{};
+  void allocate(size_type capacity) {
+    data_ = capacity ? reinterpret_cast<pointer>(new storage[capacity]) : nullptr;
+    last_ = data_ + capacity;
+  }
+
+  pointer head_;
+  pointer data_;
+  pointer last_;
 };
 
 // Todo: operator==
