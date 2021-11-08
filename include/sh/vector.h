@@ -15,7 +15,7 @@ class delete_guard {
   delete_guard(void* pointer) : pointer_(reinterpret_cast<T*>(pointer)) {}
 
   ~delete_guard() {
-    if (pointer_) {
+    if (pointer_) [[unlikely]] {
       delete[] pointer_;
     }
   }
@@ -56,8 +56,10 @@ class vector<T, 0> {
     head_ = std::uninitialized_fill_n(begin(), count, value);
   }
 
-  explicit vector(size_type count) : vector(count, {}) {
+  explicit vector(size_type count) {
     static_assert(std::is_default_constructible_v<value_type>);
+    allocate(count);
+    head_ = std::uninitialized_default_construct_n(begin(), count);
   }
 
   template <std::random_access_iterator InputIt>
@@ -95,33 +97,57 @@ class vector<T, 0> {
   }
 
   auto operator=(std::initializer_list<value_type> list) -> vector& {
-    destruct();
-    reserve_uninitialized(std::distance(list.begin(), list.end()));
-    head_ = sh::copy(list.begin(), list.end(), begin());
+    static_assert(std::is_copy_constructible_v<value_type>);
+    assign(list.begin(), list.end());
     return *this;
   }
 
   auto operator=(const vector& other) -> vector& {
-    if (this != &other) {
-      destruct();
-      reserve_uninitialized(other.size());
-      head_ = sh::copy(other.begin(), other.end(), begin());
+    static_assert(std::is_copy_constructible_v<value_type>);
+    if (this != &other) [[likely]] {
+      assign(other.begin(), other.end());
     }
     return *this;
   }
 
   auto operator=(vector&& other) -> vector& {
-    if (this != &other) {
-      if (data_) {
-        destruct();
-        deallocate();
-      }
+    if (this != &other) [[likely]] {
+      ~vector();
       data_ = other.data_;
       head_ = other.head_;
       last_ = other.last_;
       other.data_ = nullptr;
     }
     return *this;
+  }
+
+  void assign(size_type count, const value_type& value) {
+    static_assert(std::is_copy_constructible_v<value_type>);
+    destruct();
+    uninitialized_reserve(count);
+    head_ = std::uninitialized_fill_n(begin(), count, value);
+  }
+
+  template <std::random_access_iterator InputIt>
+  void assign(InputIt first, InputIt last) {
+    static_assert(std::is_copy_constructible_v<value_type>);
+    destruct();
+    uninitialized_reserve(std::distance(first, last));
+    head_ = sh::uninitialized_copy(first, last, begin());
+  }
+
+  template <std::forward_iterator InputIt>
+  void assign(InputIt first, InputIt last) {
+    static_assert(std::is_copy_constructible_v<value_type>);
+    clear();
+    for (; first != last; ++first) {
+      push_back(*first);
+    }
+  }
+
+  void assign(std::initializer_list<value_type> list) {
+    static_assert(std::is_copy_constructible_v<value_type>);
+    assign(list.begin(), list.end());
   }
 
   auto operator[](std::size_t index) -> reference {
@@ -229,7 +255,9 @@ class vector<T, 0> {
   }
 
   void shrink_to_fit() {
-    reallocate(size());
+    if (data_) {
+      reallocate(size());
+    }
   }
 
   void clear() {
@@ -240,19 +268,31 @@ class vector<T, 0> {
   template <typename... Args>
     requires(std::constructible_from<value_type, Args...>)
   auto emplace(const_iterator pos, Args&&... args) -> iterator {
-    const auto index = std::distance(cbegin(), pos);
-    assert(index <= size());
-    grow_to_fit();
-    std::move_backward(begin() + index, end(), end() + 1);
-    head_++;
-    return std::construct_at(begin() + index, std::forward<Args>(args)...);
+    static_assert(std::is_move_constructible_v<value_type>);
+    static_assert(std::is_move_assignable_v<value_type>);
+    if (pos == end()) {
+      grow_to_fit();
+      return std::construct_at(head_++, std::forward<Args>(args)...);
+    } else {
+      const auto index = std::distance(cbegin(), pos);
+      assert(index < size());
+      grow_to_fit();
+      // Todo: optimive with memmov where possible
+      std::move_backward(begin() + index, end(), end() + 1);
+      auto& item = (*this)[index];
+      item = value_type(std::forward<Args>(args)...);
+      head_++;
+      return static_cast<iterator>(&item);
+    }
   }
 
-  auto insert(const_iterator pos, const value_type& value) -> iterator {
+  auto insert(const_iterator pos, const value_type& value)
+      -> iterator requires std::is_copy_constructible_v<value_type> {
     return emplace(pos, value);
   }
 
-  auto insert(const_iterator pos, value_type&& value) -> iterator {
+  auto insert(const_iterator pos, value_type&& value)
+      -> iterator requires std::is_move_constructible_v<value_type> {
     return emplace(pos, std::move(value));
   }
 
@@ -358,7 +398,7 @@ class vector<T, 0> {
   }
 
   void grow_to_fit() {
-    if (head_ == last_) {
+    if (head_ == last_) [[unlikely]] {
       reallocate(data_ ? 2 * capacity() : 1);
     }
   }
@@ -369,7 +409,7 @@ class vector<T, 0> {
     }
   }
 
-  void reserve_uninitialized(size_type capacity) {
+  void uninitialized_reserve(size_type capacity) {
     if (capacity > this->capacity()) {
       if (data_) {
         deallocate();
@@ -417,7 +457,9 @@ class vector<T, 0> {
   }
 
   void destruct() {
-    std::destroy(begin(), end());
+    if constexpr (!std::is_trivially_destructible_v<value_type>) {
+      std::destroy(begin(), end());
+    }
   }
 
   void reallocate(size_type capacity) {
@@ -463,8 +505,7 @@ class vector<T, 0> {
 
 template <typename T, std::size_t kSizeA, std::size_t kSizeB>
 auto operator==(const vector<T, kSizeA>& a, const vector<T, kSizeB>& b) -> bool {
-  return true;
-  // return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin());
+  return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin());
 }
 
 template <typename T, std::size_t kSizeA, std::size_t kSizeB>

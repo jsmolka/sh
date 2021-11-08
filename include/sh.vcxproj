@@ -16,6 +16,9 @@
     <ClInclude Include="sh\utility.h" />
     <ClInclude Include="sh\vector.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{97d5281b-d9ee-4f4d-b407-6d0045b8a93a}</ProjectGuid>
