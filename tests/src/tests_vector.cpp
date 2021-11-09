@@ -329,22 +329,22 @@ void tests_vector_emplace() {
   make_vector_test<T>("emplace(const_iterator, Args...)") = []() {
     sh::vector<T> v1{0, 0};
     v1.emplace(v1.begin(), 1);
-    // v1.emplace(v1.begin() + 2, 2);
-    // v1.emplace(v1.end(), 3);
-    expect(static_cast<bool>(v1 == sh::vector<T>{1, 0, 0}));
+    v1.emplace(v1.begin() + 2, 2);
+    v1.emplace(v1.end(), 3);
+    expect(static_cast<bool>(v1 == sh::vector<T>{1, 0, 2, 0, 3}));
   };
 }
 
-// template <typename T>
-// void tests_vector_insert() {
-//  make_vector_test<T>("insert(const_iterator, const value_type&)") = []() {
-//    sh::vector<T> v1{0, 0};
-//    v1.insert(v1.begin(), 1);
-//    v1.insert(v1.begin() + 2, 2);
-//    v1.insert(v1.end(), 3);
-//    expect(static_cast<bool>(v1 == sh::vector<T>{1, 0, 2, 0, 3}));
-//  };
-//}
+template <typename T>
+void tests_vector_insert() {
+  make_vector_test<T>("insert(const_iterator, const value_type&|value_type&&)") = []() {
+    sh::vector<T> v1{0, 0};
+    v1.insert(v1.begin(), 1);
+    v1.insert(v1.begin() + 2, 2);
+    v1.insert(v1.end(), 3);
+    expect(static_cast<bool>(v1 == sh::vector<T>{1, 0, 2, 0, 3}));
+  };
+}
 
 void tests_vector() {
   tests_vector_constructor<trivially_copyable>();
@@ -382,11 +382,11 @@ void tests_vector() {
   tests_vector_clear<move_constructible>();
   tests_vector_clear<nothrow_copy_constructible>();
   tests_vector_clear<copy_constructible>();
-  // tests_vector_insert<trivially_copyable>();
-  // tests_vector_insert<nothrow_move_constructible>();
-  // tests_vector_insert<move_constructible>();
-  // tests_vector_insert<nothrow_copy_constructible>();
-  // tests_vector_insert<copy_constructible>();
+  tests_vector_insert<trivially_copyable>();
+  tests_vector_insert<nothrow_move_constructible>();
+  tests_vector_insert<move_constructible>();
+  // tests_vector_insert<nothrow_copy_constructible>();  // Does not meet requirements
+  // tests_vector_insert<copy_constructible>(); // Does not meet requirements
   tests_vector_emplace<trivially_copyable>();
   tests_vector_emplace<nothrow_move_constructible>();
   tests_vector_emplace<move_constructible>();

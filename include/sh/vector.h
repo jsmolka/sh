@@ -277,8 +277,8 @@ class vector<T, 0> {
       const auto index = std::distance(cbegin(), pos);
       assert(index < size());
       grow_to_fit();
-      // Todo: optimive with memmov where possible
-      std::move_backward(begin() + index, end(), end() + 1);
+      std::construct_at(end(), std::move(end()[-1]));
+      std::move_backward(begin() + index, end() - 1, end());  // Todo: optimize with memmove?
       auto& item = (*this)[index];
       item = value_type(std::forward<Args>(args)...);
       head_++;
