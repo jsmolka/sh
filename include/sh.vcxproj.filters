@@ -27,6 +27,9 @@
     <ClInclude Include="sh\memory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="sh\named_requirements.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />

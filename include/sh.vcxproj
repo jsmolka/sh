@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClInclude Include="sh\memory.h" />
     <ClInclude Include="sh\fmt.h" />
+    <ClInclude Include="sh\named_requirements.h" />
     <ClInclude Include="sh\utility.h" />
     <ClInclude Include="sh\vector.h" />
   </ItemGroup>
