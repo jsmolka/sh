@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cstring>
 #include <iterator>
 #include <memory>
 #include <type_traits>
