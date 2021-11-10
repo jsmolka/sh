@@ -61,9 +61,9 @@ class vector<T, 0> {
     head_ = sh::uninitialized_default_construct_n(begin(), count);
   }
 
-  template <std::random_access_iterator I, std::sentinel_for<I> S>
+  template <std::random_access_iterator I>
     requires(std::constructible_from<value_type, std::iter_reference_t<I>>)
-  vector(I first, S last) {
+  vector(I first, I last) {
     allocate(std::distance(first, last));
     head_ = sh::uninitialized_copy(first, last, begin());
   }
@@ -89,19 +89,19 @@ class vector<T, 0> {
 
   ~vector() {
     if (data_) {
-      destruct();
+      destroy();
       deallocate();
     }
   }
 
-  auto operator=(std::initializer_list<value_type> list) -> vector& {
-    static_assert(std::is_copy_constructible_v<value_type>);
+  auto operator=(std::initializer_list<value_type> list)
+      -> vector& requires(std::constructible_from<value_type, const value_type&>) {
     assign(list.begin(), list.end());
     return *this;
   }
 
-  auto operator=(const vector& other) -> vector& {
-    static_assert(std::is_copy_constructible_v<value_type>);
+  auto operator=(const vector& other)
+      -> vector& requires(std::constructible_from<value_type, const value_type&>) {
     if (this != &other) [[likely]] {
       assign(other.begin(), other.end());
     }
@@ -111,40 +111,38 @@ class vector<T, 0> {
   auto operator=(vector&& other) -> vector& {
     if (this != &other) [[likely]] {
       ~vector();
-      data_ = other.data_;
-      head_ = other.head_;
-      last_ = other.last_;
+      swap(other);
       other.data_ = nullptr;
     }
     return *this;
   }
 
-  void assign(size_type count, const value_type& value) {
-    static_assert(std::is_copy_constructible_v<value_type>);
-    destruct();
+  void assign(size_type count, const value_type& value) requires(
+      std::constructible_from<value_type, const value_type&>) {
+    destroy();
     uninitialized_reserve(count);
-    head_ = std::uninitialized_fill_n(begin(), count, value);
+    head_ = sh::uninitialized_fill_n(begin(), count, value);
   }
 
-  template <std::random_access_iterator InputIt>
-  void assign(InputIt first, InputIt last) {
-    static_assert(std::is_copy_constructible_v<value_type>);
-    destruct();
+  template <std::random_access_iterator I, std::sentinel_for<I> S>
+    requires(std::constructible_from<value_type, std::iter_reference_t<I>>)
+  void assign(I first, S last) {
+    destroy();
     uninitialized_reserve(std::distance(first, last));
     head_ = sh::uninitialized_copy(first, last, begin());
   }
 
-  template <std::forward_iterator InputIt>
-  void assign(InputIt first, InputIt last) {
-    static_assert(std::is_copy_constructible_v<value_type>);
+  template <std::input_iterator I, std::sentinel_for<I> S>
+    requires(std::constructible_from<value_type, std::iter_reference_t<I>>)
+  void assign(I first, S last) {
     clear();
     for (; first != last; ++first) {
       push_back(*first);
     }
   }
 
-  void assign(std::initializer_list<value_type> list) {
-    static_assert(std::is_copy_constructible_v<value_type>);
+  void assign(std::initializer_list<value_type> list) requires(
+      std::constructible_from<value_type, const value_type&>) {
     assign(list.begin(), list.end());
   }
 
@@ -259,7 +257,7 @@ class vector<T, 0> {
   }
 
   void clear() {
-    destruct();
+    destroy();
     head_ = data_;
   }
 
@@ -378,6 +376,12 @@ class vector<T, 0> {
     std::destroy_at(--head_);
   }
 
+  void swap(vector& other) {
+    std::swap(data_, other.data_);
+    std::swap(head_, other.head_);
+    std::swap(last_, other.last_);
+  }
+
  private:
   using storage = std::aligned_storage_t<sizeof(value_type), alignof(value_type)>;
 
@@ -421,7 +425,7 @@ class vector<T, 0> {
   auto reallocate_nothrow_move_construct(pointer dest) -> pointer {
     assert(data_ && dest);
     dest = sh::uninitialized_move(begin(), end(), dest);
-    destruct();
+    destroy();
     deallocate();
     return dest;
   }
@@ -430,7 +434,7 @@ class vector<T, 0> {
     assert(data_ && dest);
     delete_guard<storage> guard(dest);
     dest = sh::uninitialized_move(begin(), end(), dest);
-    destruct();
+    destroy();
     deallocate();
     guard.release();
     return dest;
@@ -439,7 +443,7 @@ class vector<T, 0> {
   auto reallocate_nothrow_copy_construct(pointer dest) -> pointer {
     assert(data_ && dest);
     dest = sh::uninitialized_copy(begin(), end(), dest);
-    destruct();
+    destroy();
     deallocate();
     return dest;
   }
@@ -448,16 +452,14 @@ class vector<T, 0> {
     assert(data_ && dest);
     delete_guard<storage> guard(dest);
     dest = sh::uninitialized_copy(begin(), end(), dest);
-    destruct();
+    destroy();
     deallocate();
     guard.release();
     return dest;
   }
 
-  void destruct() {
-    if constexpr (!std::is_trivially_destructible_v<value_type>) {
-      std::destroy(begin(), end());
-    }
+  void destroy() {
+    sh::destroy(begin(), end());
   }
 
   void reallocate(size_type capacity) {

@@ -119,22 +119,16 @@ auto uninitialized_fill_n(I first, std::size_t count, const T& value) -> I {
 template <std::forward_iterator I, std::sentinel_for<I> S>
   requires(std::default_initializable<std::iter_value_t<I>>)
 void uninitialized_default_construct(I first, S last) {
-  if constexpr (!std::is_trivially_default_constructible_v<std::iter_value_t<I>>) {
-    for (; first != last; ++first) {
-      std::construct_at(std::to_address(first));
-    }
+  for (; first != last; ++first) {
+    std::construct_at(std::to_address(first));
   }
 }
 
 template <std::forward_iterator I>
   requires(std::default_initializable<std::iter_value_t<I>>)
 auto uninitialized_default_construct_n(I first, std::size_t count) -> I {
-  if constexpr (std::is_trivially_default_constructible_v<std::iter_value_t<I>>) {
-    std::advance(first, count);
-  } else {
-    for (; count; ++first, --count) {
-      std::construct_at(std::to_address(first));
-    }
+  for (; count; ++first, --count) {
+    std::construct_at(std::to_address(first));
   }
   return first;
 }
