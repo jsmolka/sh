@@ -27,7 +27,7 @@
     <ClInclude Include="sh\memory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="sh\named_requirements.h">
+    <ClInclude Include="sh\algorithm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

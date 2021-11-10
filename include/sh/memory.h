@@ -8,8 +8,146 @@
 
 namespace sh {
 
-namespace {
+template <std::input_iterator I, std::sentinel_for<I> S, typename A>
+void destroy_a(I first, S last, A& alloc) {
+  using Allocator = std::allocator_traits<A>;
+  if constexpr (!std::is_trivially_destructible_v<std::iter_value_t<I>>) {
+    for (; first != last; ++first) {
+      Allocator::destroy(alloc, std::to_address(first));
+    }
+  }
+}
 
+template <std::input_iterator I, typename A>
+void destroy_n_a(I first, std::size_t count, A& alloc) {
+  using Allocator = std::allocator_traits<A>;
+  if constexpr (!std::is_trivially_destructible_v<std::iter_value_t<I>>) {
+    for (; count; ++first, --count) {
+      Allocator::destroy(alloc, std::to_address(first));
+    }
+  }
+}
+
+template <std::input_iterator I, std::sentinel_for<I> S, std::forward_iterator D, typename A>
+  requires(std::constructible_from<std::iter_value_t<D>, std::iter_reference_t<I>>)
+auto uninitialized_copy_a(I first, S last, D dest, A& alloc) -> D {
+  using Allocator = std::allocator_traits<A>;
+  auto current = dest;
+  try {
+    for (; current != last; ++first, ++current) {
+      Allocator::construct(alloc, std::to_address(current), *first);
+    }
+    return current;
+  } catch (...) {
+    destroy_a(dest, current, alloc);
+    throw;
+  }
+}
+
+template <std::input_iterator I, std::forward_iterator D, typename A>
+  requires(std::constructible_from<std::iter_value_t<D>, std::iter_reference_t<I>>)
+auto uninitialized_copy_n_a(I first, std::size_t count, D dest, A& alloc) -> D {
+  using Allocator = std::allocator_traits<A>;
+  auto current = dest;
+  try {
+    for (; count; ++first, --count, ++current) {
+      Allocator::construct(alloc, std::to_address(current), *first);
+    }
+    return current;
+  } catch (...) {
+    destroy_a(dest, current, alloc);
+    throw;
+  }
+}
+
+template <std::input_iterator I, std::sentinel_for<I> S, std::forward_iterator D, typename A>
+  requires(std::constructible_from<std::iter_value_t<D>, std::iter_rvalue_reference_t<I>>)
+auto uninitialized_move_a(I first, S last, D dest, A& alloc) -> D {
+  using Allocator = std::allocator_traits<A>;
+  auto current = dest;
+  try {
+    for (; current != last; ++first, ++current) {
+      Allocator::construct(alloc, std::to_address(current), std::move(*first));
+    }
+    return current;
+  } catch (...) {
+    destroy_a(dest, current, alloc);
+    throw;
+  }
+}
+
+template <std::input_iterator I, std::forward_iterator D, typename A>
+  requires(std::constructible_from<std::iter_value_t<D>, std::iter_rvalue_reference_t<I>>)
+auto uninitialized_move_n_a(I first, std::size_t count, D dest, A& alloc) -> D {
+  using Allocator = std::allocator_traits<A>;
+  auto current = dest;
+  try {
+    for (; count; ++first, --count, ++current) {
+      Allocator::construct(alloc, std::to_address(current), std::move(*first));
+    }
+    return current;
+  } catch (...) {
+    destroy_a(dest, current, alloc);
+    throw;
+  }
+}
+
+template <std::forward_iterator I, std::sentinel_for<I> S, typename T, typename A>
+  requires(std::constructible_from<std::iter_value_t<I>, const T&>)
+auto uninitialized_fill_a(I first, S last, const T& value, A& alloc) -> I {
+  using Allocator = std::allocator_traits<A>;
+  auto current = first;
+  try {
+    for (; current != last; ++current) {
+      Allocator::construct(alloc, std::to_address(current), value);
+    }
+    return current;
+  } catch (...) {
+    destroy_a(first, current, alloc);
+    throw;
+  }
+}
+
+template <std::forward_iterator I, typename T, typename A>
+  requires(std::constructible_from<std::iter_value_t<I>, const T&>)
+auto uninitialized_fill_a(I first, std::size_t count, const T& value, A& alloc) -> I {
+  using Allocator = std::allocator_traits<A>;
+  auto current = first;
+  try {
+    for (; count; ++current, --count) {
+      Allocator::construct(alloc, std::to_address(current), value);
+    }
+    return current;
+  } catch (...) {
+    destroy_a(first, current, alloc);
+    throw;
+  }
+}
+
+template <std::forward_iterator I, std::sentinel_for<I> S, typename A>
+  requires(std::default_initializable<std::iter_value_t<I>>)
+void uninitialized_default_construct_a(I first, S last, A& alloc) {
+  using Allocator = std::allocator_traits<A>;
+  if constexpr (!std::is_trivially_default_constructible_v<std::iter_value_t<I>>) {
+    for (; first != last; ++first) {
+      Allocator::construct(alloc, std::to_address(first));
+    }
+  }
+}
+
+template <std::forward_iterator I, typename A>
+  requires(std::default_initializable<std::iter_value_t<I>>)
+void uninitialized_default_construct_a(I first, std::size_t count, A& alloc) {
+  using Allocator = std::allocator_traits<A>;
+  if constexpr (!std::is_trivially_default_constructible_v<std::iter_value_t<I>>) {
+    for (; count; ++first, --count) {
+      Allocator::construct(alloc, std::to_address(first));
+    }
+  }
+  return first;
+}
+
+namespace {
 template <typename InputIt, typename OutputIt>
 concept same_contiguous_memory = requires {
   std::contiguous_iterator<InputIt>;

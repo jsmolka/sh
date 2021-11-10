@@ -392,4 +392,7 @@ void tests_vector() {
   tests_vector_emplace<move_constructible>();
   // tests_vector_emplace<nothrow_copy_constructible>();  // Does not meet requirements
   // tests_vector_emplace<copy_constructible>();  // Does not meet requirements
+
+  std::vector<int> x;
+  x.get_allocator();
 }

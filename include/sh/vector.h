@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cassert>
-#include <concepts>
 
+#include <sh/algorithm.h>
 #include <sh/memory.h>
 
 namespace sh {
@@ -30,11 +30,11 @@ class delete_guard {
 
 }  // namespace
 
-template <typename T, std::size_t kSize = 0>
+template <typename T, std::size_t kSize = 0, typename Allocator = std::allocator<T>>
 class vector {};
 
-template <typename T>
-class vector<T, 0> {
+template <typename T, typename Allocator>
+class vector<T, 0, Allocator> {
  public:
   using value_type = T;
   using size_type = std::size_t;
