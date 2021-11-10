@@ -7,29 +7,6 @@
 
 namespace sh {
 
-namespace {
-
-template <typename T>
-class delete_guard {
- public:
-  delete_guard(void* pointer) : pointer_(reinterpret_cast<T*>(pointer)) {}
-
-  ~delete_guard() {
-    if (pointer_) [[unlikely]] {
-      delete[] pointer_;
-    }
-  }
-
-  void release() {
-    pointer_ = nullptr;
-  }
-
- private:
-  T* pointer_;
-};
-
-}  // namespace
-
 template <typename T, std::size_t kSize = 0>
 class vector {};
 
@@ -377,9 +354,10 @@ class vector<T, 0> {
   }
 
   void swap(vector& other) {
-    std::swap(data_, other.data_);
-    std::swap(head_, other.head_);
-    std::swap(last_, other.last_);
+    using std::swap;
+    swap(data_, other.data_);
+    swap(head_, other.head_);
+    swap(last_, other.last_);
   }
 
  private:
@@ -432,11 +410,14 @@ class vector<T, 0> {
 
   auto reallocate_move_construct(pointer dest) -> pointer {
     assert(data_ && dest);
-    delete_guard<storage> guard(dest);
-    dest = sh::uninitialized_move(begin(), end(), dest);
-    destroy();
-    deallocate();
-    guard.release();
+    try {
+      dest = sh::uninitialized_move(begin(), end(), dest);
+      destroy();
+      deallocate();
+    } catch (...) {
+      delete[] reinterpret_cast<storage*>(dest);
+      throw;
+    }
     return dest;
   }
 
@@ -450,11 +431,14 @@ class vector<T, 0> {
 
   auto reallocate_copy_construct(pointer dest) -> pointer {
     assert(data_ && dest);
-    delete_guard<storage> guard(dest);
-    dest = sh::uninitialized_copy(begin(), end(), dest);
-    destroy();
-    deallocate();
-    guard.release();
+    try {
+      dest = sh::uninitialized_copy(begin(), end(), dest);
+      destroy();
+      deallocate();
+    } catch (...) {
+      delete[] reinterpret_cast<storage*>(dest);
+      throw;
+    }
     return dest;
   }
 
@@ -502,6 +486,16 @@ class vector<T, 0> {
   pointer data_{};
   pointer last_{};
 };
+
+template <typename T>
+void swap(vector<T>& a, vector<T>& b) {
+  a.swap(b);
+}
+
+template <typename T, std::size_t kSizeA, std::size_t kSizeB>
+void swap(vector<T, kSizeA>& a, vector<T, kSizeB>& b) {
+  // Todo: implement
+}
 
 template <typename T, std::size_t kSizeA, std::size_t kSizeB>
 auto operator==(const vector<T, kSizeA>& a, const vector<T, kSizeB>& b) -> bool {

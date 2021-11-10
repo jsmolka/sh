@@ -120,7 +120,7 @@ struct tests_constructor : public base<T, N> {
     member("vector(size_type, const value_type&)") = []() {
       vector v1(3, {1});
       expect(v1.size() == 3);
-      expect(v1.capacity() == std::max(3ull, N));
+      expect(v1.capacity() == std::max<std::size_t>(3, N));
       expect(static_cast<bool>(v1 == vector{1, 1, 1}));
 
       vector v2(0, {1});
@@ -132,7 +132,7 @@ struct tests_constructor : public base<T, N> {
     member("vector(size_type)") = []() {
       vector v1(3);
       expect(v1.size() == 3);
-      expect(v1.capacity() == std::max(3ull, N));
+      expect(v1.capacity() == std::max<std::size_t>(3, N));
       expect(static_cast<bool>(v1 == vector{0, 0, 0}));
 
       vector v2(0);
@@ -145,7 +145,7 @@ struct tests_constructor : public base<T, N> {
       vector v1{0, 1, 2};
       vector v2(v1.begin(), v1.end());
       expect(v2.size() == 3);
-      expect(v2.capacity() == std::max(3ull, N));
+      expect(v2.capacity() == std::max<std::size_t>(3, N));
       expect(static_cast<bool>(v1 == v2));
 
       vector v3;
@@ -159,7 +159,7 @@ struct tests_constructor : public base<T, N> {
       vector v1{0, 1, 2};
       vector v2(v1);
       expect(v2.size() == 3);
-      expect(v2.capacity() == std::max(3ull, N));
+      expect(v2.capacity() == std::max<std::size_t>(3, N));
       expect(static_cast<bool>(v1 == v2));
     };
 
@@ -170,14 +170,14 @@ struct tests_constructor : public base<T, N> {
       expect(v1.data() == nullptr);
       expect(v2.data() == data);
       expect(v2.size() == 3);
-      expect(v2.capacity() == std::max(3ull, N));
+      expect(v2.capacity() == std::max<std::size_t>(3, N));
       expect(static_cast<bool>(v2 == vector{0, 1, 2}));
     };
 
     member("vector(initializer_list)") = []() {
       vector v1{0, 1, 2};
       expect(v1.size() == 3);
-      expect(v1.capacity() == std::max(3ull, N));
+      expect(v1.capacity() == std::max<std::size_t>(3, N));
       expect(v1[0] == T{0});
       expect(v1[1] == T{1});
       expect(v1[2] == T{2});
