@@ -110,7 +110,7 @@ auto uninitialized_fill_a(I first, S last, const T& value, A& alloc) -> I {
 
 template <std::forward_iterator I, typename T, typename A>
   requires(std::constructible_from<std::iter_value_t<I>, const T&>)
-auto uninitialized_fill_a(I first, std::size_t count, const T& value, A& alloc) -> I {
+auto uninitialized_fill_n_a(I first, std::size_t count, const T& value, A& alloc) -> I {
   using Allocator = std::allocator_traits<A>;
   auto current = first;
   try {
@@ -137,7 +137,7 @@ void uninitialized_default_construct_a(I first, S last, A& alloc) {
 
 template <std::forward_iterator I, typename A>
   requires(std::default_initializable<std::iter_value_t<I>>)
-void uninitialized_default_construct_a(I first, std::size_t count, A& alloc) {
+auto uninitialized_default_construct_n_a(I first, std::size_t count, A& alloc) -> I {
   using Allocator = std::allocator_traits<A>;
   if constexpr (!std::is_trivially_default_constructible_v<std::iter_value_t<I>>) {
     for (; count; ++first, --count) {
