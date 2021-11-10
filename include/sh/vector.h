@@ -30,11 +30,11 @@ class delete_guard {
 
 }  // namespace
 
-template <typename T, std::size_t kSize = 0, typename Allocator = std::allocator<T>>
+template <typename T, std::size_t kSize = 0>
 class vector {};
 
-template <typename T, typename Allocator>
-class vector<T, 0, Allocator> {
+template <typename T>
+class vector<T, 0> {
  public:
   using value_type = T;
   using size_type = std::size_t;
@@ -266,8 +266,8 @@ class vector<T, 0, Allocator> {
   template <typename... Args>
     requires(std::constructible_from<value_type, Args...>)
   auto emplace(const_iterator pos, Args&&... args) -> iterator {
-    static_assert(std::is_move_constructible_v<value_type>);
-    static_assert(std::is_move_assignable_v<value_type>);
+    // static_assert(std::is_move_constructible_v<value_type>);
+    // static_assert(std::is_move_assignable_v<value_type>);
     if (pos == end()) {
       grow_to_fit();
       return std::construct_at(head_++, std::forward<Args>(args)...);
