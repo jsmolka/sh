@@ -48,46 +48,44 @@ class vector<T, 0, Allocator> {
   using reverse_iterator = std::reverse_iterator<iterator>;
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-  vector() noexcept : data_{}, head_{}, last_{} {}
+  vector() noexcept = default;
 
-  vector(size_type count, const value_type& value) {
-    static_assert(std::is_copy_constructible_v<value_type>);
+  vector(size_type count,
+         const value_type& value) requires(std::constructible_from<value_type, const value_type&>) {
     allocate(count);
-    head_ = std::uninitialized_fill_n(begin(), count, value);
+    head_ = sh::uninitialized_fill_n(begin(), count, value);
   }
 
-  explicit vector(size_type count) {
-    static_assert(std::is_default_constructible_v<value_type>);
+  explicit vector(size_type count) requires(std::default_initializable<value_type>) {
     allocate(count);
-    head_ = std::uninitialized_default_construct_n(begin(), count);
+    head_ = sh::uninitialized_default_construct_n(begin(), count);
   }
 
-  template <std::random_access_iterator InputIt>
-  vector(InputIt first, InputIt last) {
-    static_assert(std::is_copy_constructible_v<value_type>);
+  template <std::random_access_iterator I, std::sentinel_for<I> S>
+    requires(std::constructible_from<value_type, std::iter_reference_t<I>>)
+  vector(I first, S last) {
     allocate(std::distance(first, last));
     head_ = sh::uninitialized_copy(first, last, begin());
   }
 
-  template <std::input_iterator InputIt>
-  vector(InputIt first, InputIt last) : vector() {
-    static_assert(std::is_copy_constructible_v<value_type>);
+  template <std::input_iterator I, std::sentinel_for<I> S>
+    requires(std::constructible_from<value_type, std::iter_reference_t<I>>)
+  vector(I first, S last) {
     for (; first != last; ++first) {
       push_back(*first);
     }
   }
 
-  vector(std::initializer_list<value_type> list) : vector(list.begin(), list.end()) {
-    static_assert(std::is_copy_constructible_v<value_type>);
-  }
-
-  vector(const vector& other) : vector(other.begin(), other.end()) {
-    static_assert(std::is_copy_constructible_v<value_type>);
-  }
+  vector(const vector& other) requires(std::constructible_from<value_type, const value_type&>)
+      : vector(other.begin(), other.end()) {}
 
   vector(vector&& other) noexcept : data_(other.data_), head_(other.head_), last_(other.last_) {
     other.data_ = nullptr;
   }
+
+  vector(std::initializer_list<value_type> list) requires(
+      std::constructible_from<value_type, const value_type&>)
+      : vector(list.begin(), list.end()) {}
 
   ~vector() {
     if (data_) {
@@ -498,9 +496,9 @@ class vector<T, 0, Allocator> {
     delete[] reinterpret_cast<storage*>(data_);
   }
 
-  pointer head_;
-  pointer data_;
-  pointer last_;
+  pointer head_{};
+  pointer data_{};
+  pointer last_{};
 };
 
 template <typename T, std::size_t kSizeA, std::size_t kSizeB>

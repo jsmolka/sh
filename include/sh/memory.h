@@ -128,7 +128,7 @@ void uninitialized_default_construct(I first, S last) {
 
 template <std::forward_iterator I>
   requires(std::default_initializable<std::iter_value_t<I>>)
-auto uninitialized_default_construct_n_a(I first, std::size_t count) -> I {
+auto uninitialized_default_construct_n(I first, std::size_t count) -> I {
   if constexpr (!std::is_trivially_default_constructible_v<std::iter_value_t<I>>) {
     for (; count; ++first, --count) {
       std::construct_at(std::to_address(first));
