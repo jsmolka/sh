@@ -28,12 +28,12 @@ class vector<T, 0> {
 
   vector() noexcept = default;
 
-  vector(size_type count, const value_type& value) requires(sh::copy_constructible<value_type>) {
+  vector(size_type count, const value_type& value) requires sh::copy_constructible<value_type> {
     allocate(count);
     head_ = sh::uninitialized_fill_n(begin(), count, value);
   }
 
-  explicit vector(size_type count) requires(std::default_initializable<value_type>) {
+  explicit vector(size_type count) requires std::default_initializable<value_type> {
     allocate(count);
     head_ = sh::uninitialized_default_construct_n(begin(), count);
   }
@@ -53,14 +53,14 @@ class vector<T, 0> {
     }
   }
 
-  vector(const vector& other) requires(sh::copy_constructible<value_type>)
+  vector(const vector& other) requires sh::copy_constructible<value_type>
       : vector(other.begin(), other.end()) {}
 
   vector(vector&& other) noexcept : data_(other.data_), head_(other.head_), last_(other.last_) {
     other.data_ = nullptr;
   }
 
-  vector(std::initializer_list<value_type> list) requires(sh::copy_constructible<value_type>)
+  vector(std::initializer_list<value_type> list) requires sh::copy_constructible<value_type>
       : vector(list.begin(), list.end()) {}
 
   ~vector() {
@@ -71,12 +71,12 @@ class vector<T, 0> {
   }
 
   auto operator=(std::initializer_list<value_type> list)
-      -> vector& requires(sh::copy_constructible<value_type>) {
+      -> vector& requires sh::copy_constructible<value_type> {
     assign(list.begin(), list.end());
     return *this;
   }
 
-  auto operator=(const vector& other) -> vector& requires(sh::copy_constructible<value_type>) {
+  auto operator=(const vector& other) -> vector& requires sh::copy_constructible<value_type> {
     if (this != &other) [[likely]] {
       assign(other.begin(), other.end());
     }
@@ -93,14 +93,14 @@ class vector<T, 0> {
   }
 
   void assign(size_type count,
-              const value_type& value) requires(sh::copy_constructible<value_type>) {
+              const value_type& value) requires sh::copy_constructible<value_type> {
     destroy();
     uninitialized_reserve(count);
     head_ = sh::uninitialized_fill_n(begin(), count, value);
   }
 
   template <std::random_access_iterator I, std::sentinel_for<I> S>
-    requires(std::constructible_from<value_type, std::iter_reference_t<I>>)
+    requires std::constructible_from<value_type, std::iter_reference_t<I>>
   void assign(I first, S last) {
     destroy();
     uninitialized_reserve(std::distance(first, last));
@@ -108,7 +108,7 @@ class vector<T, 0> {
   }
 
   template <std::input_iterator I, std::sentinel_for<I> S>
-    requires(std::constructible_from<value_type, std::iter_reference_t<I>>)
+    requires std::constructible_from<value_type, std::iter_reference_t<I>>
   void assign(I first, S last) {
     clear();
     for (; first != last; ++first) {
@@ -116,7 +116,7 @@ class vector<T, 0> {
     }
   }
 
-  void assign(std::initializer_list<value_type> list) requires(sh::copy_constructible<value_type>) {
+  void assign(std::initializer_list<value_type> list) requires sh::copy_constructible<value_type> {
     assign(list.begin(), list.end());
   }
 
@@ -236,10 +236,9 @@ class vector<T, 0> {
   }
 
   template <typename... Args>
-    requires(std::constructible_from<value_type, Args...>)
+    requires std::constructible_from<value_type, Args...> && sh::move_constructible<value_type> &&
+        sh::move_assignable<value_type>
   auto emplace(const_iterator pos, Args&&... args) -> iterator {
-    // static_assert(std::is_move_constructible_v<value_type>);
-    // static_assert(std::is_move_assignable_v<value_type>);
     if (pos == end()) {
       grow_to_fit();
       return std::construct_at(head_++, std::forward<Args>(args)...);

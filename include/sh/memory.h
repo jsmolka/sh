@@ -27,7 +27,7 @@ void destroy_n(I first, std::size_t count) {
 }
 
 template <std::input_iterator I, std::sentinel_for<I> S, std::forward_iterator D>
-  requires(std::constructible_from<std::iter_value_t<D>, std::iter_reference_t<I>>)
+  requires std::constructible_from<std::iter_value_t<D>, std::iter_reference_t<I>>
 auto uninitialized_copy(I first, S last, D dest) -> D {
   const auto rollback = dest;
   try {
@@ -42,7 +42,7 @@ auto uninitialized_copy(I first, S last, D dest) -> D {
 }
 
 template <std::input_iterator I, std::forward_iterator D>
-  requires(std::constructible_from<std::iter_value_t<D>, std::iter_reference_t<I>>)
+  requires std::constructible_from<std::iter_value_t<D>, std::iter_reference_t<I>>
 auto uninitialized_copy_n(I first, std::size_t count, D dest) -> D {
   const auto rollback = dest;
   try {
@@ -57,7 +57,7 @@ auto uninitialized_copy_n(I first, std::size_t count, D dest) -> D {
 }
 
 template <std::input_iterator I, std::sentinel_for<I> S, std::forward_iterator D>
-  requires(std::constructible_from<std::iter_value_t<D>, std::iter_rvalue_reference_t<I>>)
+  requires std::constructible_from<std::iter_value_t<D>, std::iter_rvalue_reference_t<I>>
 auto uninitialized_move(I first, S last, D dest) -> D {
   const auto rollback = dest;
   try {
@@ -72,7 +72,7 @@ auto uninitialized_move(I first, S last, D dest) -> D {
 }
 
 template <std::input_iterator I, std::forward_iterator D>
-  requires(std::constructible_from<std::iter_value_t<D>, std::iter_rvalue_reference_t<I>>)
+  requires std::constructible_from<std::iter_value_t<D>, std::iter_rvalue_reference_t<I>>
 auto uninitialized_move_n(I first, std::size_t count, D dest) -> D {
   const auto rollback = dest;
   try {
@@ -117,7 +117,7 @@ auto uninitialized_fill_n(I first, std::size_t count, const T& value) -> I {
 }
 
 template <std::forward_iterator I, std::sentinel_for<I> S>
-  requires(std::default_initializable<std::iter_value_t<I>>)
+  requires std::default_initializable<std::iter_value_t<I>>
 void uninitialized_default_construct(I first, S last) {
   for (; first != last; ++first) {
     std::construct_at(std::to_address(first));
@@ -125,7 +125,7 @@ void uninitialized_default_construct(I first, S last) {
 }
 
 template <std::forward_iterator I>
-  requires(std::default_initializable<std::iter_value_t<I>>)
+  requires std::default_initializable<std::iter_value_t<I>>
 auto uninitialized_default_construct_n(I first, std::size_t count) -> I {
   for (; count; ++first, --count) {
     std::construct_at(std::to_address(first));
