@@ -30,6 +30,9 @@
     <ClInclude Include="sh\algorithm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="sh\concepts.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />

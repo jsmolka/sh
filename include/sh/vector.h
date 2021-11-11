@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include <sh/algorithm.h>
+#include <sh/concepts.h>
 #include <sh/memory.h>
 
 namespace sh {
@@ -27,8 +28,7 @@ class vector<T, 0> {
 
   vector() noexcept = default;
 
-  vector(size_type count,
-         const value_type& value) requires(std::constructible_from<value_type, const value_type&>) {
+  vector(size_type count, const value_type& value) requires(sh::copy_constructible<value_type>) {
     allocate(count);
     head_ = sh::uninitialized_fill_n(begin(), count, value);
   }
@@ -53,15 +53,14 @@ class vector<T, 0> {
     }
   }
 
-  vector(const vector& other) requires(std::constructible_from<value_type, const value_type&>)
+  vector(const vector& other) requires(sh::copy_constructible<value_type>)
       : vector(other.begin(), other.end()) {}
 
   vector(vector&& other) noexcept : data_(other.data_), head_(other.head_), last_(other.last_) {
     other.data_ = nullptr;
   }
 
-  vector(std::initializer_list<value_type> list) requires(
-      std::constructible_from<value_type, const value_type&>)
+  vector(std::initializer_list<value_type> list) requires(sh::copy_constructible<value_type>)
       : vector(list.begin(), list.end()) {}
 
   ~vector() {
@@ -72,13 +71,12 @@ class vector<T, 0> {
   }
 
   auto operator=(std::initializer_list<value_type> list)
-      -> vector& requires(std::constructible_from<value_type, const value_type&>) {
+      -> vector& requires(sh::copy_constructible<value_type>) {
     assign(list.begin(), list.end());
     return *this;
   }
 
-  auto operator=(const vector& other)
-      -> vector& requires(std::constructible_from<value_type, const value_type&>) {
+  auto operator=(const vector& other) -> vector& requires(sh::copy_constructible<value_type>) {
     if (this != &other) [[likely]] {
       assign(other.begin(), other.end());
     }
@@ -94,8 +92,8 @@ class vector<T, 0> {
     return *this;
   }
 
-  void assign(size_type count, const value_type& value) requires(
-      std::constructible_from<value_type, const value_type&>) {
+  void assign(size_type count,
+              const value_type& value) requires(sh::copy_constructible<value_type>) {
     destroy();
     uninitialized_reserve(count);
     head_ = sh::uninitialized_fill_n(begin(), count, value);
@@ -118,8 +116,7 @@ class vector<T, 0> {
     }
   }
 
-  void assign(std::initializer_list<value_type> list) requires(
-      std::constructible_from<value_type, const value_type&>) {
+  void assign(std::initializer_list<value_type> list) requires(sh::copy_constructible<value_type>) {
     assign(list.begin(), list.end());
   }
 
@@ -260,12 +257,12 @@ class vector<T, 0> {
   }
 
   auto insert(const_iterator pos, const value_type& value)
-      -> iterator requires std::is_copy_constructible_v<value_type> {
+      -> iterator requires std::copy_constructible<value_type> {
     return emplace(pos, value);
   }
 
   auto insert(const_iterator pos, value_type&& value)
-      -> iterator requires std::is_move_constructible_v<value_type> {
+      -> iterator requires std::move_constructible<value_type> {
     return emplace(pos, std::move(value));
   }
 
@@ -487,14 +484,9 @@ class vector<T, 0> {
   pointer last_{};
 };
 
-template <typename T>
-void swap(vector<T>& a, vector<T>& b) {
+template <typename T, std::size_t kSize>
+void swap(vector<T, kSize>& a, vector<T, kSize>& b) {
   a.swap(b);
-}
-
-template <typename T, std::size_t kSizeA, std::size_t kSizeB>
-void swap(vector<T, kSizeA>& a, vector<T, kSizeB>& b) {
-  // Todo: implement
 }
 
 template <typename T, std::size_t kSizeA, std::size_t kSizeB>

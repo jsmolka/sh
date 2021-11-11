@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="sh\algorithm.h" />
+    <ClInclude Include="sh\concepts.h" />
     <ClInclude Include="sh\memory.h" />
     <ClInclude Include="sh\fmt.h" />
     <ClInclude Include="sh\utility.h" />
