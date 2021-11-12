@@ -41,4 +41,13 @@ auto move_n(I first, std::size_t count, D dest) -> D {
   return dest;
 }
 
+template <std::bidirectional_iterator I1, std::sentinel_for<I1> S1, std::bidirectional_iterator I2>
+  requires std::indirectly_movable<I1, I2>
+auto move_backward(I1 first, S1 last, I2 dest) -> I2 {
+  while (first != last) {
+    *(--dest) = std::move(*(--last));
+  }
+  return dest;
+}
+
 }  // namespace sh

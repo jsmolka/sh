@@ -247,7 +247,7 @@ class vector<T, 0> {
       assert(index < size());
       grow_to_fit();
       std::construct_at(end(), std::move(end()[-1]));
-      std::move_backward(begin() + index, end() - 1, end());  // Todo: optimize with memmove?
+      sh::move_backward(begin() + index, end() - 1, end());
       auto& item = (*this)[index];
       item = value_type(std::forward<Args>(args)...);
       head_++;
