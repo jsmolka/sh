@@ -16,4 +16,7 @@ concept move_constructible = std::constructible_from<T, T&&>;
 template <typename T>
 concept move_assignable = std::assignable_from<T&, T&&>;
 
+template <typename T>
+concept value_constructible = std::constructible_from<T>;
+
 }  // namespace sh

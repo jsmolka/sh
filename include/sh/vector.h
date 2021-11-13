@@ -30,24 +30,26 @@ class vector<T, 0> {
 
   vector(size_type count, const value_type& value) requires sh::copy_constructible<value_type> {
     allocate(count);
-    head_ = sh::uninitialized_fill_n(begin(), count, value);
+    head_ = std::uninitialized_fill_n(begin(), count, value);
   }
 
-  explicit vector(size_type count) requires std::default_initializable<value_type> {
+  explicit vector(size_type count) requires sh::value_constructible<T> {
     allocate(count);
-    head_ = sh::uninitialized_default_construct_n(begin(), count);
+    head_ = std::uninitialized_value_construct_n(begin(), count);
   }
 
   template <std::random_access_iterator I>
     requires(std::constructible_from<value_type, std::iter_reference_t<I>>)
   vector(I first, I last) {
-    allocate(std::distance(first, last));
-    head_ = sh::uninitialized_copy(first, last, begin());
+    const difference_type distance = std::distance(first, last);
+    assert(distance >= 0);
+    allocate(static_cast<size_type>(distance));
+    head_ = std::uninitialized_copy(first, last, begin());
   }
 
-  template <std::input_iterator I, std::sentinel_for<I> S>
+  template <std::input_iterator I>
     requires(std::constructible_from<value_type, std::iter_reference_t<I>>)
-  vector(I first, S last) {
+  vector(I first, I last) {
     for (; first != last; ++first) {
       push_back(*first);
     }
@@ -60,8 +62,8 @@ class vector<T, 0> {
     other.data_ = nullptr;
   }
 
-  vector(std::initializer_list<value_type> list) requires sh::copy_constructible<value_type>
-      : vector(list.begin(), list.end()) {}
+  vector(std::initializer_list<value_type> init) requires sh::copy_constructible<value_type>
+      : vector(init.begin(), init.end()) {}
 
   ~vector() {
     if (data_) {
@@ -70,9 +72,9 @@ class vector<T, 0> {
     }
   }
 
-  auto operator=(std::initializer_list<value_type> list)
+  auto operator=(std::initializer_list<value_type> init)
       -> vector& requires sh::copy_constructible<value_type> {
-    assign(list.begin(), list.end());
+    assign(init.begin(), init.end());
     return *this;
   }
 
@@ -85,7 +87,7 @@ class vector<T, 0> {
 
   auto operator=(vector&& other) -> vector& {
     if (this != &other) [[likely]] {
-      ~vector();
+      this->~vector();
       swap(other);
       other.data_ = nullptr;
     }
@@ -96,125 +98,129 @@ class vector<T, 0> {
               const value_type& value) requires sh::copy_constructible<value_type> {
     destroy();
     uninitialized_reserve(count);
-    head_ = sh::uninitialized_fill_n(begin(), count, value);
+    head_ = std::uninitialized_fill_n(begin(), count, value);
   }
 
   template <std::random_access_iterator I>
     requires std::constructible_from<value_type, std::iter_reference_t<I>>
   void assign(I first, I last) {
+    assert(!inside_this(first));
+    assert(!inside_this(last));
     destroy();
-    uninitialized_reserve(std::distance(first, last));
-    head_ = sh::uninitialized_copy(first, last, begin());
+    const difference_type distance = std::distance(first, last);
+    assert(distance >= 0);
+    uninitialized_reserve(static_cast<size_type>(distance));
+    head_ = std::uninitialized_copy(first, last, begin());
   }
 
-  template <std::input_iterator I, std::sentinel_for<I> S>
+  template <std::input_iterator I>
     requires std::constructible_from<value_type, std::iter_reference_t<I>>
-  void assign(I first, S last) {
+  void assign(I first, I last) {
     clear();
     for (; first != last; ++first) {
       push_back(*first);
     }
   }
 
-  void assign(std::initializer_list<value_type> list) requires sh::copy_constructible<value_type> {
-    assign(list.begin(), list.end());
+  void assign(std::initializer_list<value_type> init) requires sh::copy_constructible<value_type> {
+    assign(init.begin(), init.end());
   }
 
-  auto operator[](std::size_t index) -> reference {
+  [[nodiscard]] auto operator[](std::size_t index) -> reference {
     assert(index < size());
     return data_[index];
   }
 
-  auto operator[](std::size_t index) const -> const_reference {
+  [[nodiscard]] auto operator[](std::size_t index) const -> const_reference {
     assert(index < size());
     return data_[index];
   }
 
-  auto front() -> reference {
+  [[nodiscard]] auto front() -> reference {
     assert(!empty());
     return *data_;
   }
 
-  auto front() const -> const_reference {
+  [[nodiscard]] auto front() const -> const_reference {
     assert(!empty());
     return *data_;
   }
 
-  auto back() -> reference {
+  [[nodiscard]] auto back() -> reference {
     assert(!empty());
     return head_[-1];
   }
 
-  auto back() const -> const_reference {
+  [[nodiscard]] auto back() const -> const_reference {
     assert(!empty());
     return head_[-1];
   }
 
-  auto data() -> pointer {
+  [[nodiscard]] auto data() -> pointer {
     return data_;
   }
 
-  auto data() const -> const_pointer {
+  [[nodiscard]] auto data() const -> const_pointer {
     return data_;
   }
 
-  auto begin() -> iterator {
+  [[nodiscard]] auto begin() -> iterator {
     return iterator(data_);
   }
 
-  auto end() -> iterator {
+  [[nodiscard]] auto end() -> iterator {
     return iterator(head_);
   }
 
-  auto begin() const -> const_iterator {
+  [[nodiscard]] auto begin() const -> const_iterator {
     return const_iterator(data_);
   }
 
-  auto end() const -> const_iterator {
+  [[nodiscard]] auto end() const -> const_iterator {
     return const_iterator(head_);
   }
 
-  auto cbegin() const -> const_iterator {
+  [[nodiscard]] auto cbegin() const -> const_iterator {
     return const_iterator(data_);
   }
 
-  auto cend() const -> const_iterator {
+  [[nodiscard]] auto cend() const -> const_iterator {
     return const_iterator(head_);
   }
 
-  auto rbegin() -> reverse_iterator {
-    return reverse_iterator(head_);
+  [[nodiscard]] auto rbegin() -> reverse_iterator {
+    return std::make_reverse_iterator(end());
   }
 
-  auto rend() -> reverse_iterator {
-    return reverse_iterator(data_);
+  [[nodiscard]] auto rend() -> reverse_iterator {
+    return std::make_reverse_iterator(begin());
   }
 
-  auto rbegin() const -> const_reverse_iterator {
-    return const_reverse_iterator(head_);
+  [[nodiscard]] auto rbegin() const /* -> const_reverse_iterator */ {
+    return std::make_reverse_iterator(end());
   }
 
-  auto rend() const -> const_reverse_iterator {
-    return const_reverse_iterator(data_);
+  [[nodiscard]] auto rend() const /* -> const_reverse_iterator */ {
+    return std::make_reverse_iterator(begin());
   }
 
-  auto crbegin() const -> const_reverse_iterator {
-    return const_reverse_iterator(head_);
+  [[nodiscard]] auto crbegin() const /* -> const_reverse_iterator */ {
+    return std::make_reverse_iterator(cend());
   }
 
-  auto crend() const -> const_reverse_iterator {
-    return const_reverse_iterator(data_);
+  [[nodiscard]] auto crend() const /* -> const_reverse_iterator */ {
+    return std::make_reverse_iterator(cbegin());
   }
 
-  auto empty() const -> bool {
+  [[nodiscard]] auto empty() const -> bool {
     return head_ == data_;
   }
 
-  auto size() const -> size_type {
+  [[nodiscard]] auto size() const -> size_type {
     return head_ - data_;
   }
 
-  auto capacity() const -> size_type {
+  [[nodiscard]] auto capacity() const -> size_type {
     return last_ - data_;
   }
 
@@ -239,19 +245,21 @@ class vector<T, 0> {
     requires sh::move_constructible<value_type> && sh::move_assignable<value_type> &&
         std::constructible_from<value_type, Args...>
   auto emplace(const_iterator pos, Args&&... args) -> iterator {
+    pointer where;
     if (pos == end()) {
       grow_to_fit();
-      return std::construct_at(head_++, std::forward<Args>(args)...);
+      where = end();
     } else {
-      const auto index = std::distance(cbegin(), pos);
+      const size_type index = std::distance(cbegin(), pos);
       assert(index < size());
       grow_to_fit();
+      where = begin() + index;
       std::construct_at(end(), std::move(end()[-1]));
-      sh::move_backward(begin() + index, end() - 1, end());
-      std::destroy_at(begin() + index);
-      head_++;
-      return std::construct_at(begin() + index, std::forward<Args>(args)...);
+      std::move_backward(where, end() - 1, end());
+      std::destroy_at(where);
     }
+    head_++;
+    return std::construct_at(where, std::forward<Args>(args)...);
   }
 
   auto insert(const_iterator pos, const value_type& value)
@@ -357,6 +365,17 @@ class vector<T, 0> {
 
  private:
   using storage = std::aligned_storage_t<sizeof(value_type), alignof(value_type)>;
+
+  template <typename Iterator>
+  auto inside_this(Iterator it) const -> bool {
+    if constexpr (std::same_as<iterator, std::remove_const_t<Iterator>>) {
+      return it >= begin() && it < end();
+    } else if constexpr (std::same_as<reverse_iterator, std::remove_const_t<Iterator>>) {
+      return inside_this(it.base());
+    } else {
+      return false;
+    }
+  }
 
   template <typename... Args>
     requires std::constructible_from<value_type, Args...>
