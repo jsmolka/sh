@@ -99,9 +99,9 @@ class vector<T, 0> {
     head_ = sh::uninitialized_fill_n(begin(), count, value);
   }
 
-  template <std::random_access_iterator I, std::sentinel_for<I> S>
+  template <std::random_access_iterator I>
     requires std::constructible_from<value_type, std::iter_reference_t<I>>
-  void assign(I first, S last) {
+  void assign(I first, I last) {
     destroy();
     uninitialized_reserve(std::distance(first, last));
     head_ = sh::uninitialized_copy(first, last, begin());
@@ -236,8 +236,8 @@ class vector<T, 0> {
   }
 
   template <typename... Args>
-    requires std::constructible_from<value_type, Args...> && sh::move_constructible<value_type> &&
-        sh::move_assignable<value_type>
+    requires sh::move_constructible<value_type> && sh::move_assignable<value_type> &&
+        std::constructible_from<value_type, Args...>
   auto emplace(const_iterator pos, Args&&... args) -> iterator {
     if (pos == end()) {
       grow_to_fit();
@@ -248,10 +248,9 @@ class vector<T, 0> {
       grow_to_fit();
       std::construct_at(end(), std::move(end()[-1]));
       sh::move_backward(begin() + index, end() - 1, end());
-      auto& item = (*this)[index];
-      item = value_type(std::forward<Args>(args)...);
+      std::destroy_at(begin() + index);
       head_++;
-      return static_cast<iterator>(&item);
+      return std::construct_at(begin() + index, std::forward<Args>(args)...);
     }
   }
 

@@ -96,6 +96,10 @@ template <typename T, std::size_t N>
 struct base {
   using vector = sh::vector<T, N>;
 
+  static std::size_t capacity(std::size_t value) {
+    return std::max<std::size_t>(value, N);
+  }
+
   static auto member(std::string_view member) {
     return make_test("vector<{}, {}>::{}", typeid(T).name(), N, member);
   }
@@ -104,83 +108,85 @@ struct base {
 template <typename T, std::size_t N>
 struct tests_constructor : public base<T, N> {
   using typename base<T, N>::vector;
+  using base<T, N>::capacity;
   using base<T, N>::member;
 
   static void run() {
     member("vector()") = []() {
-      vector v1;
-      expect(v1.size() == 0);
-      expect(v1.capacity() == N);
-      expect(v1.data() == nullptr);
-      expect(v1.begin() == nullptr);
-      expect(v1.end() == nullptr);
-      expect(static_cast<bool>(v1 == vector{}));
+      vector vec1{};
+      expect(vec1.size() == 0);
+      expect(vec1.capacity() == N);
+      expect(vec1.data() == nullptr);
+      expect(vec1.begin() == nullptr);
+      expect(vec1.end() == nullptr);
+      expect(static_cast<bool>(vec1 == vector{}));
     };
 
     member("vector(size_type, const value_type&)") = []() {
-      vector v1(3, {1});
-      expect(v1.size() == 3);
-      expect(v1.capacity() == std::max<std::size_t>(3, N));
-      expect(static_cast<bool>(v1 == vector{1, 1, 1}));
+      T v1{1};
+      vector vec1(3, v1);
+      expect(vec1.size() == 3);
+      expect(vec1.capacity() == capacity(3));
+      expect(static_cast<bool>(vec1 == vector{1, 1, 1}));
 
-      vector v2(0, {1});
-      expect(v2.size() == 0);
-      expect(v2.capacity() == N);
-      expect(static_cast<bool>(v2 == vector{}));
+      vector vec2(0, v1);
+      expect(vec2.size() == 0);
+      expect(vec2.capacity() == N);
+      expect(static_cast<bool>(vec2 == vector{}));
     };
 
     member("vector(size_type)") = []() {
-      vector v1(3);
-      expect(v1.size() == 3);
-      expect(v1.capacity() == std::max<std::size_t>(3, N));
-      expect(static_cast<bool>(v1 == vector{0, 0, 0}));
+      vector vec1(3);
+      expect(vec1.size() == 3);
+      expect(vec1.capacity() == capacity(3));
+      expect(static_cast<bool>(vec1 == vector{0, 0, 0}));
 
-      vector v2(0);
-      expect(v2.size() == 0);
-      expect(v2.capacity() == N);
-      expect(static_cast<bool>(v2 == vector{}));
+      vector vec2(0);
+      expect(vec2.size() == 0);
+      expect(vec2.capacity() == N);
+      expect(static_cast<bool>(vec2 == vector{}));
     };
 
     member("vector(Iterator, Iterator)") = []() {
-      vector v1{0, 1, 2};
-      vector v2(v1.begin(), v1.end());
-      expect(v2.size() == 3);
-      expect(v2.capacity() == std::max<std::size_t>(3, N));
-      expect(static_cast<bool>(v1 == v2));
+      vector vec1{0, 1, 2};
+      vector vec2(vec1.begin(), vec1.end());
+      expect(vec2.size() == 3);
+      expect(vec2.capacity() == capacity(3));
+      expect(static_cast<bool>(vec1 == vec2));
 
-      vector v3;
-      vector v4(v3.begin(), v3.end());
-      expect(v3.size() == 0);
-      expect(v3.capacity() == N);
-      expect(static_cast<bool>(v3 == v4));
+      vector vec3{};
+      vector vec4(vec3.begin(), vec3.end());
+      expect(vec3.size() == 0);
+      expect(vec3.capacity() == N);
+      expect(static_cast<bool>(vec3 == vec4));
     };
 
     member("vector(const vector&)") = []() {
-      vector v1{0, 1, 2};
-      vector v2(v1);
-      expect(v2.size() == 3);
-      expect(v2.capacity() == std::max<std::size_t>(3, N));
-      expect(static_cast<bool>(v1 == v2));
+      vector vec1{0, 1, 2};
+      vector vec2(vec1);
+      expect(vec2.size() == 3);
+      expect(vec2.capacity() == capacity(3));
+      expect(static_cast<bool>(vec1 == vec2));
     };
 
     member("vector(vector&&)") = []() {
-      vector v1{0, 1, 2};
-      const auto data = v1.data();
-      vector v2(std::move(v1));
-      expect(v1.data() == nullptr);
-      expect(v2.data() == data);
-      expect(v2.size() == 3);
-      expect(v2.capacity() == std::max<std::size_t>(3, N));
-      expect(static_cast<bool>(v2 == vector{0, 1, 2}));
+      vector vec1{0, 1, 2};
+      const auto data = vec1.data();
+      vector vec2(std::move(vec1));
+      expect(vec1.data() == nullptr);
+      expect(vec2.data() == data);
+      expect(vec2.size() == 3);
+      expect(vec2.capacity() == capacity(3));
+      expect(static_cast<bool>(vec2 == vector{0, 1, 2}));
     };
 
     member("vector(initializer_list)") = []() {
-      vector v1{0, 1, 2};
-      expect(v1.size() == 3);
-      expect(v1.capacity() == std::max<std::size_t>(3, N));
-      expect(v1[0] == T{0});
-      expect(v1[1] == T{1});
-      expect(v1[2] == T{2});
+      vector vec1{0, 1, 2};
+      expect(vec1.size() == 3);
+      expect(vec1.capacity() == capacity(3));
+      expect(vec1[0] == T{0});
+      expect(vec1[1] == T{1});
+      expect(vec1[2] == T{2});
     };
   }
 };
@@ -188,23 +194,20 @@ struct tests_constructor : public base<T, N> {
 template <typename T, std::size_t N>
 struct tests_comparison_operator : base<T, N> {
   using typename base<T, N>::vector;
+  using base<T, N>::capacity;
   using base<T, N>::member;
 
   static void run() {
     member("operator==") = []() {
-      vector v1{0, 1, 2};
-      vector v2{0, 1, 2};
-      expect(static_cast<bool>(v1 == v2));
+      expect(static_cast<bool>(vector{0, 1, 2} == vector{0, 1, 2}));
+      expect(!static_cast<bool>(vector{0, 1, 2} == vector{0, 1}));
+      expect(!static_cast<bool>(vector{0, 1, 2} == vector{0, 1, 3}));
     };
 
     member("operator!=") = []() {
-      vector v1{0, 1, 2};
-      vector v2{0, 1};
-      expect(static_cast<bool>(v1 != v2));
-
-      vector v3{0, 1, 2};
-      vector v4{0, 1, 3};
-      expect(static_cast<bool>(v3 != v4));
+      expect(!static_cast<bool>(vector{0, 1, 2} != vector{0, 1, 2}));
+      expect(static_cast<bool>(vector{0, 1, 2} != vector{0, 1}));
+      expect(static_cast<bool>(vector{0, 1, 2} != vector{0, 1, 3}));
     };
   }
 };
@@ -212,48 +215,50 @@ struct tests_comparison_operator : base<T, N> {
 template <typename T, std::size_t N>
 struct tests_assign : base<T, N> {
   using typename base<T, N>::vector;
+  using base<T, N>::capacity;
   using base<T, N>::member;
 
   static void run() {
     member("assign(size_type, const value_type&)") = []() {
-      vector v1;
-      v1.assign(3, {1});
-      expect(v1.size() == 3);
-      expect(v1.capacity() == 3);
-      expect(static_cast<bool>(v1 == vector{1, 1, 1}));
+      T v1{1};
+      vector vec1{};
+      vec1.assign(3, v1);
+      expect(vec1.size() == 3);
+      expect(vec1.capacity() == capacity(3));
+      expect(static_cast<bool>(vec1 == vector{1, 1, 1}));
 
-      v1.assign(0, {2});
-      expect(v1.size() == 0);
-      expect(v1.capacity() == 3);
-      expect(static_cast<bool>(v1 == vector{}));
+      vec1.assign(0, v1);
+      expect(vec1.size() == 0);
+      expect(vec1.capacity() == capacity(3));
+      expect(static_cast<bool>(vec1 == vector{}));
     };
 
     member("assign(InputIt, InputIt)") = []() {
-      vector v1{0, 1, 2};
-      vector v2;
-      v2.assign(v1.begin(), v1.end());
-      expect(v2.size() == 3);
-      expect(v2.capacity() == 3);
-      expect(static_cast<bool>(v1 == vector{0, 1, 2}));
+      vector vec1{0, 1, 2};
+      vector vec2{};
+      vec2.assign(vec1.begin(), vec1.end());
+      expect(vec2.size() == 3);
+      expect(vec2.capacity() == capacity(3));
+      expect(static_cast<bool>(vec1 == vector{0, 1, 2}));
 
-      vector v3;
-      v2.assign(v3.begin(), v3.end());
-      expect(v2.size() == 0);
-      expect(v2.capacity() == 3);
-      expect(static_cast<bool>(v2 == vector{}));
+      vector vec3{};
+      vec2.assign(vec3.begin(), vec3.end());
+      expect(vec2.size() == 0);
+      expect(vec2.capacity() == capacity(3));
+      expect(static_cast<bool>(vec2 == vector{}));
     };
 
     member("assign(initializer_list)") = []() {
-      vector v1;
-      v1.assign({0, 1, 2});
-      expect(v1.size() == 3);
-      expect(v1.capacity() == 3);
-      expect(static_cast<bool>(v1 == vector{0, 1, 2}));
+      vector vec1{};
+      vec1.assign({0, 1, 2});
+      expect(vec1.size() == 3);
+      expect(vec1.capacity() == capacity(3));
+      expect(static_cast<bool>(vec1 == vector{0, 1, 2}));
 
-      v1.assign({});
-      expect(v1.size() == 0);
-      expect(v1.capacity() == 3);
-      expect(static_cast<bool>(v1 == vector{}));
+      vec1.assign({});
+      expect(vec1.size() == 0);
+      expect(vec1.capacity() == capacity(3));
+      expect(static_cast<bool>(vec1 == vector{}));
     };
   }
 };
@@ -261,44 +266,45 @@ struct tests_assign : base<T, N> {
 template <typename T, std::size_t N>
 struct tests_assignment_operator : base<T, N> {
   using typename base<T, N>::vector;
+  using base<T, N>::capacity;
   using base<T, N>::member;
 
   static void run() {
     member("operator=(const vector&)") = []() {
-      vector v1{0, 1, 2};
-      vector v2 = v1;
-      expect(v2.size() == 3);
-      expect(v2.capacity() == 3);
-      expect(static_cast<bool>(v1 == v2));
+      vector vec1{0, 1, 2};
+      vector vec2 = vec1;
+      expect(vec2.size() == 3);
+      expect(vec2.capacity() == capacity(3));
+      expect(static_cast<bool>(vec1 == vec2));
 
-      vector v3;
-      vector v4 = v3;
-      expect(v4.size() == 0);
-      expect(v4.capacity() == 0);
-      expect(static_cast<bool>(v3 == v4));
+      vector vec3{};
+      vector vec4 = vec3;
+      expect(vec4.size() == 0);
+      expect(vec4.capacity() == capacity(0));
+      expect(static_cast<bool>(vec3 == vec4));
     };
 
     member("operator=(vector&&)") = []() {
-      vector v1{0, 1, 2};
-      const auto data = v1.data();
-      vector v2 = std::move(v1);
-      expect(v1.data() == nullptr);
-      expect(v2.data() == data);
-      expect(v2.size() == 3);
-      expect(v2.capacity() == 3);
-      expect(static_cast<bool>(v2 == vector{0, 1, 2}));
+      vector vec1{0, 1, 2};
+      const auto data = vec1.data();
+      vector vec2 = std::move(vec1);
+      expect(vec1.data() == nullptr);
+      expect(vec2.data() == data);
+      expect(vec2.size() == 3);
+      expect(vec2.capacity() == capacity(3));
+      expect(static_cast<bool>(vec2 == vector{0, 1, 2}));
     };
 
     member("operator=(initializer_list)") = []() {
-      vector v1 = {0, 1, 2};
-      expect(v1.size() == 3);
-      expect(v1.capacity() == 3);
-      expect(static_cast<bool>(v1 == vector{0, 1, 2}));
+      vector vec1 = {0, 1, 2};
+      expect(vec1.size() == 3);
+      expect(vec1.capacity() == capacity(3));
+      expect(static_cast<bool>(vec1 == vector{0, 1, 2}));
 
-      v1 = {};
-      expect(v1.size() == 0);
-      expect(v1.capacity() == 3);
-      expect(static_cast<bool>(v1 == vector{}));
+      vec1 = {};
+      expect(vec1.size() == 0);
+      expect(vec1.capacity() == capacity(3));
+      expect(static_cast<bool>(vec1 == vector{}));
     };
   }
 };
@@ -306,18 +312,19 @@ struct tests_assignment_operator : base<T, N> {
 template <typename T, std::size_t N>
 struct tests_reserve : base<T, N> {
   using typename base<T, N>::vector;
+  using base<T, N>::capacity;
   using base<T, N>::member;
 
   static void run() {
     member("reserve(size_type)") = []() {
-      vector v1;
-      v1.reserve(10);
-      expect(v1.capacity() == 10);
-      v1.reserve(20);
-      expect(v1.capacity() == 20);
-      v1.reserve(10);
-      expect(v1.capacity() == 20);
-      expect(v1.size() == 0);
+      vector vec1{};
+      for (auto reserve = 1; reserve <= 256; reserve *= 2) {
+        vec1.reserve(reserve);
+        expect(vec1.capacity() == capacity(reserve));
+        vec1.reserve(reserve - 1);
+        expect(vec1.capacity() == capacity(reserve));
+      }
+      expect(vec1.size() == 0);
     };
   }
 };
@@ -325,23 +332,24 @@ struct tests_reserve : base<T, N> {
 template <typename T, std::size_t N>
 struct tests_shrink_to_fit : base<T, N> {
   using typename base<T, N>::vector;
+  using base<T, N>::capacity;
   using base<T, N>::member;
 
   static void run() {
     member("shrink_to_fit()") = []() {
-      vector v1;
-      v1.reserve(10);
-      v1.assign(5, {0});
-      expect(v1.size() == 5);
-      expect(v1.capacity() == 10);
-      v1.shrink_to_fit();
-      expect(v1.size() == 5);
-      expect(v1.capacity() == 5);
+      vector vec1{};
+      vec1.reserve(10);
+      vec1.assign(5, {0});
+      expect(vec1.size() == 5);
+      expect(vec1.capacity() == capacity(10));
+      vec1.shrink_to_fit();
+      expect(vec1.size() == 5);
+      expect(vec1.capacity() == capacity(5));
 
-      vector v2;
-      v2.shrink_to_fit();
-      expect(v2.size() == 0);
-      expect(v2.capacity() == 0);
+      vector vec2{};
+      vec2.shrink_to_fit();
+      expect(vec2.size() == 0);
+      expect(vec2.capacity() == capacity(0));
     };
   }
 };
@@ -349,16 +357,17 @@ struct tests_shrink_to_fit : base<T, N> {
 template <typename T, std::size_t N>
 struct tests_clear : base<T, N> {
   using typename base<T, N>::vector;
+  using base<T, N>::capacity;
   using base<T, N>::member;
 
   static void run() {
     member("clear()") = []() {
-      vector v1{0, 1, 2};
-      expect(v1.size() == 3);
-      expect(v1.capacity() == 3);
-      v1.clear();
-      expect(v1.size() == 0);
-      expect(v1.capacity() == 3);
+      vector vec1{0, 1, 2};
+      expect(vec1.size() == 3);
+      expect(vec1.capacity() == capacity(3));
+      vec1.clear();
+      expect(vec1.size() == 0);
+      expect(vec1.capacity() == capacity(3));
     };
   }
 };
@@ -370,11 +379,13 @@ struct tests_emplace : base<T, N> {
 
   static void run() {
     member("emplace(const_iterator, Args...)") = []() {
-      vector v1{0, 0};
-      v1.emplace(v1.begin(), 1);
-      v1.emplace(v1.begin() + 2, 2);
-      v1.emplace(v1.end(), 3);
-      expect(static_cast<bool>(v1 == vector{1, 0, 2, 0, 3}));
+      if constexpr (sh::move_constructible<T> && sh::move_assignable<T>) {
+        vector v1{0, 0};
+        v1.emplace(v1.begin(), 1);
+        v1.emplace(v1.begin() + 2, 2);
+        v1.emplace(v1.end(), 3);
+        expect(static_cast<bool>(v1 == vector{1, 0, 2, 0, 3}));
+      }
     };
   }
 };
@@ -403,7 +414,6 @@ void run() {
 template <template <typename T, std::size_t N> typename Test>
 void run() {
   run<Test, int>();
-  run<Test, float>();
   run<Test, trivially_copyable>();
   run<Test, nothrow_move_constructible>();
   run<Test, move_constructible>();
@@ -422,14 +432,5 @@ void tests_vector() {
   run<tests_insert, trivially_copyable>();
   run<tests_insert, nothrow_move_constructible>();
   run<tests_insert, move_constructible>();
-  run<tests_emplace, trivially_copyable>();
-  run<tests_emplace, nothrow_move_constructible>();
-  run<tests_emplace, move_constructible>();
-  // tests_vector_insert<nothrow_copy_constructible>();  // Does not meet requirements
-  // tests_vector_insert<copy_constructible>(); // Does not meet requirements
-  // tests_vector_emplace<trivially_copyable>();
-  // tests_vector_emplace<nothrow_move_constructible>();
-  // tests_vector_emplace<move_constructible>();
-  // tests_vector_emplace<nothrow_copy_constructible>();  // Does not meet requirements
-  // tests_vector_emplace<copy_constructible>();  // Does not meet requirements
+  run<tests_emplace>();
 }
