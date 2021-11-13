@@ -520,11 +520,11 @@ struct tests_emplace : base<T, N> {
   static void run() {
     member("emplace(const_iterator, Args...)") = []() {
       if constexpr (sh::move_constructible<T> && sh::move_assignable<T>) {
-        vector v1{0, 0};
-        v1.emplace(v1.begin(), 1);
-        v1.emplace(v1.begin() + 2, 2);
-        v1.emplace(v1.end(), 3);
-        expect(static_cast<bool>(v1 == vector{1, 0, 2, 0, 3}));
+        vector vec1{0, 0};
+        vec1.emplace(vec1.begin(), 1);
+        vec1.emplace(vec1.begin() + 2, 2);
+        vec1.emplace(vec1.end(), 3);
+        expect(static_cast<bool>(vec1 == vector{1, 0, 2, 0, 3}));
       }
     };
   }
@@ -536,14 +536,36 @@ struct tests_insert : base<T, N> {
   using base<T, N>::member;
 
   static void run() {
-    member("insert(const_iterator, const value_type&|value_type&&)") = []() {
+    member("insert(const_iterator, const value_type&)") = []() {
       if constexpr (sh::move_constructible<T> && sh::move_assignable<T> &&
                     sh::copy_constructible<T>) {
-        vector v1{0, 0};
-        v1.insert(v1.begin(), 1);
-        v1.insert(v1.begin() + 2, 2);
-        v1.insert(v1.end(), 3);
-        expect(static_cast<bool>(v1 == vector{1, 0, 2, 0, 3}));
+        T v1(1);
+        T v2(2);
+        T v3(3);
+        vector vec1{0, 0};
+        vec1.insert(vec1.begin(), v1);
+        vec1.insert(vec1.begin() + 2, v2);
+        vec1.insert(vec1.end(), v3);
+        expect(static_cast<bool>(vec1 == vector{1, 0, 2, 0, 3}));
+      }
+    };
+
+    member("insert(const_iterator, value_type&&)") = []() {
+      if constexpr (sh::move_constructible<T> && sh::move_assignable<T>) {
+        T v1(1);
+        T v2(2);
+        T v3(3);
+        vector vec1{};
+        vec1.emplace_back(0);
+        vec1.emplace_back(0);
+        vec1.insert(vec1.begin(), std::move(v1));
+        vec1.insert(vec1.begin() + 2, std::move(v2));
+        vec1.insert(vec1.end(), std::move(v3));
+        expect(vec1[0] == 1);
+        expect(vec1[1] == 0);
+        expect(vec1[2] == 2);
+        expect(vec1[3] == 0);
+        expect(vec1[4] == 3);
       }
     };
   }

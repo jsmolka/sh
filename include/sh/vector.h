@@ -41,18 +41,10 @@ class vector<T, 0> {
   template <std::random_access_iterator I>
     requires(std::constructible_from<value_type, std::iter_reference_t<I>>)
   vector(I first, I last) {
-    const difference_type distance = std::distance(first, last);
+    const auto distance = std::distance(first, last);
     assert(distance >= 0);
     allocate(static_cast<size_type>(distance));
     head_ = std::uninitialized_copy(first, last, begin());
-  }
-
-  template <std::input_iterator I>
-    requires(std::constructible_from<value_type, std::iter_reference_t<I>>)
-  vector(I first, I last) {
-    for (; first != last; ++first) {
-      push_back(*first);
-    }
   }
 
   vector(const vector& other) requires sh::copy_constructible<value_type>
@@ -111,15 +103,6 @@ class vector<T, 0> {
     assert(distance >= 0);
     uninitialized_reserve(static_cast<size_type>(distance));
     head_ = std::uninitialized_copy(first, last, begin());
-  }
-
-  template <std::input_iterator I>
-    requires std::constructible_from<value_type, std::iter_reference_t<I>>
-  void assign(I first, I last) {
-    clear();
-    for (; first != last; ++first) {
-      push_back(*first);
-    }
   }
 
   void assign(std::initializer_list<value_type> init) requires sh::copy_constructible<value_type> {
@@ -250,10 +233,10 @@ class vector<T, 0> {
       grow_to_fit();
       where = end();
     } else {
-      const size_type index = std::distance(cbegin(), pos);
-      assert(index < size());
+      assert(inside_this(pos));
+      const auto distance = std::distance(cbegin(), pos);
       grow_to_fit();
-      where = begin() + index;
+      where = begin() + distance;
       std::construct_at(end(), std::move(end()[-1]));
       std::move_backward(where, end() - 1, end());
       std::destroy_at(where);
@@ -263,27 +246,31 @@ class vector<T, 0> {
   }
 
   auto insert(const_iterator pos, const value_type& value)
-      -> iterator requires std::copy_constructible<value_type> {
+      -> iterator requires sh::move_constructible<value_type> && sh::move_assignable<value_type> &&
+      std::copy_constructible<value_type> {
     return emplace(pos, value);
   }
 
   auto insert(const_iterator pos, value_type&& value)
-      -> iterator requires std::move_constructible<value_type> {
+      -> iterator requires std::move_constructible<value_type> && sh::move_assignable<value_type> {
     return emplace(pos, std::move(value));
   }
 
-  auto insert(const_iterator pos, size_type count, const value_type& value) -> iterator {
-    const auto index = std::distance(cbegin(), pos);
-    assert(index <= size());
+  auto insert(const_iterator pos, size_type count, const value_type& value)
+      -> iterator requires sh::move_constructible<value_type> && sh::move_assignable<value_type> &&
+      sh::copy_constructible<value_type> {
     if (count == 0) {
       return pos;
     }
+
+    assert(inside_this(pos));
+    const auto distance = std::distance(cbegin(), pos);
     grow_to_fit(count);
-    auto item = std::move_backward(begin() + index, end(), end() + count) - 1;
+    auto item = std::move_backward(begin() + distance, end(), end() + count) - 1;
     while (count--) {
       *item++ = value;
     }
-    return begin() + index;
+    return begin() + distance;
   }
 
   template <typename Iterator>
