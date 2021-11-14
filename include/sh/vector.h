@@ -270,16 +270,16 @@ class vector<T, 0> {
     const auto where = begin() + distance;
     const auto where_end = where + count;
 
-    if (where == end()) {
-      std::uninitialized_fill(where, where_end, value);
-    } else if (size() > count) {
-      std::uninitialized_move(end() - count, end(), end());
-      std::move(where, end() - count, where_end);
-      std::fill(where, where_end, value);
-    } else {
-      std::uninitialized_move(where, end(), where_end);
-      std::fill(where, end(), value);
-      std::uninitialized_fill(end(), where_end, value);
+    if (where == end()) {                                    // 1 1 1 1 1 - - -
+      std::uninitialized_fill(where, where_end, value);      // 1 1 1 1 1 2 2 2
+    } else if (size() > count) {                             // 1 1 1 1 1 - - -
+      std::uninitialized_move(end() - count, end(), end());  // 1 1 0 0 0 1 1 1
+      std::move(where, end() - count, where_end);            // 1 0 0 0 1 1 1 1
+      std::fill(where, where_end, value);                    // 1 2 2 2 1 1 1 1
+    } else {                                                 // 1 1 1 - - - - -
+      std::uninitialized_move(where, end(), where_end);      // 1 0 0 - - - 1 1
+      std::fill(where, end(), value);                        // 1 2 2 - - - 1 1
+      std::uninitialized_fill(end(), where_end, value);      // 1 2 2 2 2 2 1 1
     }
     head_ += count;
     return where;
@@ -302,17 +302,17 @@ class vector<T, 0> {
     const auto where = begin() + distance;
     const auto where_end = where + count;
 
-    if (where == end()) {
-      std::uninitialized_copy(first, last, where);
-    } else if (size() > count) {
-      std::uninitialized_move(end() - count, end(), end());
-      std::move(where, end() - count, where_end);
-      std::copy(first, last, where);
-    } else {
-      std::uninitialized_move(where, end(), where_end);
-      const auto uninitialized = first + std::distance(where, end());
-      const auto uninitialized_where = std::copy(first, uninitialized, where);
-      std::uninitialized_copy(uninitialized, last, uninitialized_where);
+    if (where == end()) {                                                       // 1 1 1 1 1 - - -
+      std::uninitialized_copy(first, last, where);                              // 1 1 1 1 1 2 2 2
+    } else if (size() > count) {                                                // 1 1 1 1 1 - - -
+      std::uninitialized_move(end() - count, end(), end());                     // 1 1 0 0 0 1 1 1
+      std::move(where, end() - count, where_end);                               // 1 0 0 0 1 1 1 1
+      std::copy(first, last, where);                                            // 1 2 2 2 1 1 1 1
+    } else {                                                                    // 1 1 1 1 1 - - -
+      std::uninitialized_move(where, end(), where_end);                         // 1 0 0 - - - 1 1
+      const auto uninitialized = first + std::distance(where, end());           // 1 0 0 ^ - - 1 1
+      const auto uninitialized_where = std::copy(first, uninitialized, where);  // 1 2 2 - - - 1 1
+      std::uninitialized_copy(uninitialized, last, uninitialized_where);        // 1 2 2 2 2 2 1 1
     }
     head_ += count;
     return where;
@@ -333,17 +333,17 @@ class vector<T, 0> {
 
   auto erase(const_iterator pos, size_type count)
       -> iterator requires sh::move_assignable<value_type> {
+    // assert(inside_this(pos));
+    // assert(inside_this(pos + count));
     std::move(pos + count, end(), pos);
-    std::destroy_at(end());
+    std::destroy(end() - count, end());
+    head_ -= count;
     return pos;
   }
 
-  auto erase(const_iterator first, const_iterator last) -> iterator {
-    if (first == last) {
-      return last;
-    } else {
-      return erase(first, std::distance(first, last));
-    }
+  auto erase(const_iterator first, const_iterator last)
+      -> iterator requires sh::move_assignable<value_type> {
+    return erase(first, std::distance(first, last));
   }
 
   void resize(size_type size, const value_type& value) {

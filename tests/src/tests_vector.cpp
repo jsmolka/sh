@@ -698,6 +698,53 @@ struct tests_erase : base<T, N> {
   static void run() {
     member("erase(const_iterator)") = []() {
       if constexpr (sh::move_assignable<T>) {
+        vector vec1(2, 0);
+        auto pos = vec1.erase(vec1.begin());
+        expect(pos == vec1.begin());
+        expect(static_cast<bool>(vec1 == vector{0}));
+
+        vector vec2(2, 0);
+        pos = vec2.erase(vec2.begin() + 1);
+        expect(pos == vec2.end());
+        expect(static_cast<bool>(vec2 == vector{0}));
+      }
+    };
+
+    member("erase(const_iterator, size_type)") = []() {
+      if constexpr (sh::move_assignable<T>) {
+        vector vec1{0, 1, 2};
+        auto pos = vec1.erase(vec1.begin(), 2);
+        expect(pos == vec1.begin());
+        expect(static_cast<bool>(vec1 == vector{2}));
+
+        vector vec2{0, 1, 2};
+        pos = vec2.erase(vec2.begin() + 1, 2);
+        expect(pos == vec2.end());
+        expect(static_cast<bool>(vec2 == vector{0}));
+
+        vector vec3{0, 1, 2};
+        pos = vec3.erase(vec3.begin(), std::size_t(0));
+        expect(pos == vec3.begin());
+        expect(static_cast<bool>(vec3 == vector{0, 1, 2}));
+      }
+    };
+
+    member("erase(const_iterator, const_iterator)") = []() {
+      if constexpr (sh::move_assignable<T>) {
+        vector vec1{0, 1, 2};
+        auto pos = vec1.erase(vec1.begin(), vec1.begin() + 2);
+        expect(pos == vec1.begin());
+        expect(static_cast<bool>(vec1 == vector{2}));
+
+        vector vec2{0, 1, 2};
+        pos = vec2.erase(vec2.begin() + 1, vec2.end());
+        expect(pos == vec2.end());
+        expect(static_cast<bool>(vec2 == vector{0}));
+
+        vector vec3{0, 1, 2};
+        pos = vec3.erase(vec3.begin(), vec3.begin());
+        expect(pos == vec3.begin());
+        expect(static_cast<bool>(vec3 == vector{0, 1, 2}));
       }
     };
   }
