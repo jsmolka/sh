@@ -838,6 +838,85 @@ struct tests_emplace_back : base<T, N> {
   }
 };
 
+template <typename T, std::size_t N>
+struct tests_push_back : base<T, N> {
+  using typename base<T, N>::vector;
+  using base<T, N>::capacity;
+  using base<T, N>::member;
+
+  static void run() {
+    member("push_back(const value_type&)") = []() {
+      if constexpr (sh::copy_constructible<T>) {
+        T v1(0);
+        T v2(1);
+        T v3(2);
+        vector vec2{};
+        vec2.push_back(v1);
+        vec2.push_back(v2);
+        vec2.push_back(v3);
+        expect(vec2.size() == 3);
+        expect(vec2[0] == 0);
+        expect(vec2[1] == 1);
+        expect(vec2[2] == 2);
+      }
+    };
+
+    member("push_back(value_type&&)") = []() {
+      if constexpr (sh::move_constructible<T>) {
+        T v1(0);
+        T v2(1);
+        T v3(2);
+        vector vec3{};
+        vec3.push_back(std::move(v1));
+        vec3.push_back(std::move(v2));
+        vec3.push_back(std::move(v3));
+        expect(vec3.size() == 3);
+        expect(vec3[0] == 0);
+        expect(vec3[1] == 1);
+        expect(vec3[2] == 2);
+      }
+    };
+  }
+};
+
+template <typename T, std::size_t N>
+struct tests_pop_back : base<T, N> {
+  using typename base<T, N>::vector;
+  using base<T, N>::capacity;
+  using base<T, N>::member;
+
+  static void run() {
+    member("pop_back()") = []() {
+      vector vec1{};
+      vec1.emplace_back(0);
+      expect(vec1.size() == 1);
+      vec1.emplace_back(0);
+      expect(vec1.size() == 2);
+      vec1.pop_back();
+      expect(vec1.size() == 1);
+      vec1.pop_back();
+      expect(vec1.size() == 0);
+    };
+  }
+};
+
+template <typename T, std::size_t N>
+struct tests_swap : base<T, N> {
+  using typename base<T, N>::vector;
+  using base<T, N>::capacity;
+  using base<T, N>::member;
+
+  static void run() {
+    member("swap(const vector&)") = []() {
+      vector vec1{0, 1, 2};
+      vector vec2{};
+      vec1.swap(vec2);
+      expect(bool(vec1 == vector{}));
+      expect(bool(vec2 == vector{0, 1, 2}));
+    };
+  }
+};
+
 template <template <typename T, std::size_t N> typename Test, typename U>
 void run() {
   Test<U, 0>::run();
@@ -867,4 +946,7 @@ void tests_vector() {
   run<tests_erase>();
   run<tests_resize>();
   run<tests_emplace_back>();
+  run<tests_push_back>();
+  run<tests_pop_back>();
+  run<tests_swap>();
 }

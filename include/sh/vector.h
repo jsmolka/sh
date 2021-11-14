@@ -363,12 +363,12 @@ class vector<T, 0> {
     std::construct_at(head_++, std::forward<Args>(args)...);
   }
 
-  void push_back(const value_type& value) {
+  void push_back(const value_type& value) requires sh::copy_constructible<value_type> {
     emplace_back(value);
   }
 
-  void push_back(value_type&& value) {
-    emplace_back(std::move(value));
+  void push_back(value_type&& value) requires sh::move_constructible<value_type> {
+    emplace_back(std::forward<value_type>(value));
   }
 
   void pop_back() {
