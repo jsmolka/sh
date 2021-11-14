@@ -335,9 +335,11 @@ class vector<T, 0> {
       -> iterator requires sh::move_assignable<value_type> {
     // assert(inside_this(pos));
     // assert(inside_this(pos + count));
-    std::move(pos + count, end(), pos);
-    std::destroy(end() - count, end());
-    head_ -= count;
+    if (count) {
+      std::move(pos + count, end(), pos);
+      std::destroy(end() - count, end());
+      head_ -= count;
+    }
     return pos;
   }
 
@@ -346,14 +348,12 @@ class vector<T, 0> {
     return erase(first, std::distance(first, last));
   }
 
-  void resize(size_type size, const value_type& value) {
-    static_assert(std::is_copy_constructible_v<value_type>);
-    resize_impl(size, value);
+  void resize(size_type size, const value_type& value) requires sh::copy_constructible<value_type> {
+    do_resize(size, value);
   }
 
-  void resize(size_type size) {
-    static_assert(std::is_default_constructible_v<value_type>);
-    resize_impl(size);
+  void resize(size_type size) requires std::default_initializable<value_type> {
+    do_resize(size);
   }
 
   template <typename... Args>
@@ -409,7 +409,7 @@ class vector<T, 0> {
 
   template <typename... Args>
     requires std::constructible_from<value_type, Args...>
-  void resize_impl(size_type size, Args&&... args) {
+  void do_resize(size_type size, Args&&... args) {
     if (size > capacity()) {
       reallocate(size);
       for (; head_ != last_; ++head_) {
