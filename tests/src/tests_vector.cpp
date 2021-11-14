@@ -533,6 +533,7 @@ struct tests_emplace : base<T, N> {
 template <typename T, std::size_t N>
 struct tests_insert : base<T, N> {
   using typename base<T, N>::vector;
+  using base<T, N>::capacity;
   using base<T, N>::member;
 
   static void run() {
@@ -566,6 +567,65 @@ struct tests_insert : base<T, N> {
         expect(vec1[2] == 2);
         expect(vec1[3] == 0);
         expect(vec1[4] == 3);
+      }
+    };
+
+    member("insert(const_iterator, size_type, const value_type&") = []() {
+      if constexpr (sh::move_constructible<T> && sh::move_assignable<T> &&
+                    sh::copy_constructible<T>) {
+        // count > size
+        vector vec1(2, 0);
+        auto pos = vec1.insert(vec1.end(), 3, 1);
+        expect(pos == vec1.begin() + 2);
+        expect(static_cast<bool>(vec1 == vector{0, 0, 1, 1, 1}));
+
+        vector vec2(2, 0);
+        pos = vec2.insert(vec2.begin(), 3, 1);
+        expect(pos == vec2.begin());
+        expect(static_cast<bool>(vec2 == vector{1, 1, 1, 0, 0}));
+
+        vector vec3(2, 0);
+        pos = vec3.insert(vec3.begin() + 1, 3, 1);
+        expect(pos == vec3.begin() + 1);
+        expect(static_cast<bool>(vec3 == vector{0, 1, 1, 1, 0}));
+
+        // count < size
+        vector vec4(3, 0);
+        pos = vec4.insert(vec4.end(), 2, 1);
+        expect(pos == vec4.begin() + 3);
+        expect(static_cast<bool>(vec4 == vector{0, 0, 0, 1, 1}));
+
+        vector vec5(3, 0);
+        pos = vec5.insert(vec5.begin(), 2, 1);
+        expect(pos == vec5.begin());
+        expect(static_cast<bool>(vec5 == vector{1, 1, 0, 0, 0}));
+
+        vector vec6(3, 0);
+        pos = vec6.insert(vec6.begin() + 1, 2, 1);
+        expect(pos == vec6.begin() + 1);
+        expect(static_cast<bool>(vec6 == vector{0, 1, 1, 0, 0}));
+
+        // count == size
+        vector vec7(2, 0);
+        pos = vec7.insert(vec7.end(), 2, 1);
+        expect(pos == vec7.begin() + 2);
+        expect(static_cast<bool>(vec7 == vector{0, 0, 1, 1}));
+
+        vector vec8(2, 0);
+        pos = vec8.insert(vec8.begin(), 2, 1);
+        expect(pos == vec8.begin());
+        expect(static_cast<bool>(vec8 == vector{1, 1, 0, 0}));
+
+        vector vec9(2, 0);
+        pos = vec9.insert(vec9.begin() + 1, 2, 1);
+        expect(pos == vec9.begin() + 1);
+        expect(static_cast<bool>(vec9 == vector{0, 1, 1, 0}));
+
+        // count == 0
+        vector vec10(2, 0);
+        pos = vec10.insert(vec10.end(), 0, 1);
+        expect(pos == vec10.end());
+        expect(static_cast<bool>(vec10 == vector{0, 0}));
       }
     };
   }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <type_traits>
 
 #include <sh/algorithm.h>
 #include <sh/concepts.h>
@@ -254,6 +255,32 @@ class vector<T, 0> {
   auto insert(const_iterator pos, value_type&& value)
       -> iterator requires std::move_constructible<value_type> && sh::move_assignable<value_type> {
     return emplace(pos, std::move(value));
+  }
+
+  auto insert(const_iterator pos, size_type count, const value_type& value)
+      -> iterator requires std::move_constructible<value_type> && sh::move_assignable<value_type> &&
+      sh::copy_constructible<value_type> {
+    assert(inside_this_inclusive(pos));
+    if (count == 0) [[unlikely]] {
+      return pos;
+    }
+    const auto distance = std::distance(cbegin(), pos);
+    grow_to_fit(count);
+    const auto where = begin() + distance;
+    const auto where_end = where + count;
+    if (where == end()) {
+      std::uninitialized_fill(where, where_end, value);
+    } else if (size() > count) {
+      std::uninitialized_move(end() - count, end(), end());
+      std::move(where, end() - count, where_end);
+      std::fill(where, where_end, value);
+    } else {
+      std::uninitialized_move(where, end(), where_end);
+      std::fill(where, end(), value);
+      std::uninitialized_fill(end(), where_end, value);
+    }
+    head_ += count;
+    return where;
   }
 
   auto erase(const_iterator pos) -> iterator requires sh::move_assignable<value_type> {
