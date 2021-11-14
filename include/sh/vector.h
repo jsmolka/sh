@@ -98,7 +98,7 @@ class vector<T, 0> {
     requires std::constructible_from<value_type, std::iter_reference_t<I>>
   void assign(I first, I last) {
     assert(!inside_this(first));
-    assert(!inside_this(last));
+    assert(!inside_this_inclusive(last));
     destroy();
     const difference_type distance = std::distance(first, last);
     assert(distance >= 0);
@@ -264,10 +264,12 @@ class vector<T, 0> {
     if (count == 0) [[unlikely]] {
       return pos;
     }
+
     const auto distance = std::distance(cbegin(), pos);
     grow_to_fit(count);
     const auto where = begin() + distance;
     const auto where_end = where + count;
+
     if (where == end()) {
       std::uninitialized_fill(where, where_end, value);
     } else if (size() > count) {
@@ -281,6 +283,45 @@ class vector<T, 0> {
     }
     head_ += count;
     return where;
+  }
+
+  template <std::random_access_iterator I>
+  auto insert(const_iterator pos, I first, I last)
+      -> iterator requires std::move_constructible<value_type> && sh::move_assignable<value_type> &&
+      sh::copy_constructible<value_type> {
+    assert(inside_this_inclusive(pos));
+    assert(!inside_this(first));
+    assert(!inside_this_inclusive(last));
+    if (first == last) [[unlikely]] {
+      return pos;
+    }
+
+    const auto count = std::distance(first, last);
+    const auto distance = std::distance(cbegin(), pos);
+    grow_to_fit(count);
+    const auto where = begin() + distance;
+    const auto where_end = where + count;
+
+    if (where == end()) {
+      std::uninitialized_copy(first, last, where);
+    } else if (size() > count) {
+      std::uninitialized_move(end() - count, end(), end());
+      std::move(where, end() - count, where_end);
+      std::copy(first, last, where);
+    } else {
+      std::uninitialized_move(where, end(), where_end);
+      const auto uninitialized = first + std::distance(where, end());
+      const auto uninitialized_where = std::copy(first, uninitialized, where);
+      std::uninitialized_copy(uninitialized, last, uninitialized_where);
+    }
+    head_ += count;
+    return where;
+  }
+
+  auto insert(const_iterator pos, std::initializer_list<value_type> init)
+      -> iterator requires std::move_constructible<value_type> && sh::move_assignable<value_type> &&
+      sh::copy_constructible<value_type> {
+    return insert(pos, init.begin(), init.end());
   }
 
   auto erase(const_iterator pos) -> iterator requires sh::move_assignable<value_type> {
