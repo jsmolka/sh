@@ -413,11 +413,11 @@ class vector<T, 0> {
     if (size > capacity()) {
       reallocate(size);
       for (; head_ != last_; ++head_) {
-        new (head_) value_type(std::forward<Args>(args)...);
+        std::construct_at(head_, std::forward<Args>(args)...);
       }
     } else if (size < capacity()) {
       std::destroy(begin() + size, end());
-      head_ -= size;
+      head_ = data_ + size;
     }
   }
 

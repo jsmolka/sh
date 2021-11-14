@@ -750,6 +750,46 @@ struct tests_erase : base<T, N> {
   }
 };
 
+template <typename T, std::size_t N>
+struct tests_resize : base<T, N> {
+  using typename base<T, N>::vector;
+  using base<T, N>::capacity;
+  using base<T, N>::member;
+
+  static void run() {
+    member("resize(size_type, const value_type&)") = []() {
+      if constexpr (sh::copy_constructible<T>) {
+        T v1(1);
+        vector vec1{};
+        vec1.resize(5, v1);
+        expect(vec1.size() == 5);
+        expect(vec1.capacity() == capacity(5));
+        expect(static_cast<bool>(vec1 == vector{1, 1, 1, 1, 1}));
+
+        vec1.resize(2, v1);
+        expect(vec1.size() == 2);
+        expect(vec1.capacity() == capacity(5));
+        expect(static_cast<bool>(vec1 == vector{1, 1}));
+      }
+    };
+
+    member("resize(size_type)") = []() {
+      if constexpr (std::default_initializable<T>) {
+        vector vec1{};
+        vec1.resize(5);
+        expect(vec1.size() == 5);
+        expect(vec1.capacity() == capacity(5));
+        expect(static_cast<bool>(vec1 == vector{0, 0, 0, 0, 0}));
+
+        vec1.resize(2);
+        expect(vec1.size() == 2);
+        expect(vec1.capacity() == capacity(5));
+        expect(static_cast<bool>(vec1 == vector{0, 0}));
+      }
+    };
+  }
+};
+
 template <template <typename T, std::size_t N> typename Test, typename U>
 void run() {
   Test<U, 0>::run();
@@ -777,4 +817,5 @@ void tests_vector() {
   run<tests_emplace>();
   run<tests_insert>();
   run<tests_erase>();
+  run<tests_resize>();
 }
