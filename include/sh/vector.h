@@ -1,11 +1,13 @@
 #pragma once
 
+#include <algorithm>
 #include <cassert>
+#include <iterator>
+#include <memory>
 #include <type_traits>
+#include <utility>
 
-#include <sh/algorithm.h>
 #include <sh/concepts.h>
-#include <sh/memory.h>
 
 namespace sh {
 
@@ -446,7 +448,7 @@ class vector<T, 0> {
 
   auto reallocate_nothrow_move_construct(pointer dest) -> pointer {
     assert(data_ && dest);
-    dest = sh::uninitialized_move(begin(), end(), dest);
+    dest = std::uninitialized_move(begin(), end(), dest);
     destroy();
     deallocate();
     return dest;
@@ -455,7 +457,7 @@ class vector<T, 0> {
   auto reallocate_move_construct(pointer dest) -> pointer {
     assert(data_ && dest);
     try {
-      dest = sh::uninitialized_move(begin(), end(), dest);
+      dest = std::uninitialized_move(begin(), end(), dest);
       destroy();
       deallocate();
     } catch (...) {
@@ -467,7 +469,7 @@ class vector<T, 0> {
 
   auto reallocate_nothrow_copy_construct(pointer dest) -> pointer {
     assert(data_ && dest);
-    dest = sh::uninitialized_copy(begin(), end(), dest);
+    dest = std::uninitialized_copy(begin(), end(), dest);
     destroy();
     deallocate();
     return dest;
@@ -476,7 +478,7 @@ class vector<T, 0> {
   auto reallocate_copy_construct(pointer dest) -> pointer {
     assert(data_ && dest);
     try {
-      dest = sh::uninitialized_copy(begin(), end(), dest);
+      dest = std::uninitialized_copy(begin(), end(), dest);
       destroy();
       deallocate();
     } catch (...) {
@@ -487,7 +489,7 @@ class vector<T, 0> {
   }
 
   void destroy() {
-    sh::destroy(begin(), end());
+    std::destroy(begin(), end());
   }
 
   void reallocate(size_type capacity) {

@@ -15,11 +15,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\tests_memory.cpp" />
     <ClCompile Include="src\tests_vector.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\tests_memory.h" />
     <ClInclude Include="src\tests_vector.h" />
     <ClInclude Include="src\ut.h" />
   </ItemGroup>

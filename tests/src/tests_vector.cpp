@@ -1,7 +1,6 @@
 #include "tests_vector.h"
 
 #include <compare>
-#include <vector>
 
 #include <sh/vector.h>
 
