@@ -256,51 +256,15 @@ class vector<T, 0> {
     return emplace(pos, std::move(value));
   }
 
-  auto insert(const_iterator pos, size_type count, const value_type& value)
-      -> iterator requires sh::move_constructible<value_type> && sh::move_assignable<value_type> &&
-      sh::copy_constructible<value_type> {
-    if (count == 0) {
-      return pos;
-    }
-
+  auto erase(const_iterator pos) -> iterator requires sh::move_assignable<value_type> {
     assert(inside_this(pos));
-    const auto distance = std::distance(cbegin(), pos);
-    grow_to_fit(count);
-    auto item = std::move_backward(begin() + distance, end(), end() + count) - 1;
-    while (count--) {
-      *item++ = value;
-    }
-    return begin() + distance;
-  }
-
-  template <typename Iterator>
-  auto insert(const_iterator pos, Iterator first, Iterator last) -> iterator {
-    const auto index = std::distance(cbegin(), pos);
-    const auto count = std::distance(first, last);
-    assert(index <= size());
-    if (count == 0) {
-      return pos;
-    }
-    grow_to_fit(count);
-    auto item = std::move_backward(begin() + index, end(), end() + count) - 1;
-    while (first != last) {
-      *item++ = *first++;
-    }
-    return begin() + index;
-  }
-
-  auto insert(const_iterator pos, std::initializer_list<value_type> values) -> iterator {
-    return insert(pos, values.begin(), end());
-  }
-
-  auto erase(const_iterator pos) -> iterator {
-    static_assert(std::is_move_assignable_v<value_type>);
     std::move(pos + 1, end(), pos);
     std::destroy_at(--head_);
     return pos;
   }
 
-  auto erase(const_iterator pos, size_type count) -> iterator {
+  auto erase(const_iterator pos, size_type count)
+      -> iterator requires sh::move_assignable<value_type> {
     std::move(pos + count, end(), pos);
     std::destroy_at(end());
     return pos;
@@ -357,6 +321,17 @@ class vector<T, 0> {
   auto inside_this(Iterator it) const -> bool {
     if constexpr (std::same_as<iterator, std::remove_const_t<Iterator>>) {
       return it >= begin() && it < end();
+    } else if constexpr (std::same_as<reverse_iterator, std::remove_const_t<Iterator>>) {
+      return inside_this(it.base());
+    } else {
+      return false;
+    }
+  }
+
+  template <typename Iterator>
+  auto inside_this_inclusive(Iterator it) const -> bool {
+    if constexpr (std::same_as<iterator, std::remove_const_t<Iterator>>) {
+      return it >= begin() && it <= end();
     } else if constexpr (std::same_as<reverse_iterator, std::remove_const_t<Iterator>>) {
       return inside_this(it.base());
     } else {

@@ -571,6 +571,19 @@ struct tests_insert : base<T, N> {
   }
 };
 
+template <typename T, std::size_t N>
+struct tests_erase : base<T, N> {
+  using typename base<T, N>::vector;
+  using base<T, N>::member;
+
+  static void run() {
+    member("erase(const_iterator)") = []() {
+      if constexpr (sh::move_assignable<T>) {
+      }
+    };
+  }
+};
+
 template <template <typename T, std::size_t N> typename Test, typename U>
 void run() {
   Test<U, 0>::run();
@@ -597,4 +610,5 @@ void tests_vector() {
   run<tests_clear>();
   run<tests_emplace>();
   run<tests_insert>();
+  run<tests_erase>();
 }
