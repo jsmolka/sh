@@ -790,6 +790,54 @@ struct tests_resize : base<T, N> {
   }
 };
 
+template <typename T, std::size_t N>
+struct tests_emplace_back : base<T, N> {
+  using typename base<T, N>::vector;
+  using base<T, N>::capacity;
+  using base<T, N>::member;
+
+  static void run() {
+    member("emplace_back(Args...)") = []() {
+      vector vec1{};
+      vec1.emplace_back(0);
+      vec1.emplace_back(1);
+      vec1.emplace_back(2);
+      expect(vec1.size() == 3);
+      expect(vec1[0] == 0);
+      expect(vec1[1] == 1);
+      expect(vec1[2] == 2);
+
+      if constexpr (sh::copy_constructible<T>) {
+        T v1(0);
+        T v2(1);
+        T v3(2);
+        vector vec2{};
+        vec2.emplace_back(v1);
+        vec2.emplace_back(v2);
+        vec2.emplace_back(v3);
+        expect(vec2.size() == 3);
+        expect(vec2[0] == 0);
+        expect(vec2[1] == 1);
+        expect(vec2[2] == 2);
+      }
+
+      if constexpr (sh::move_constructible<T>) {
+        T v1(0);
+        T v2(1);
+        T v3(2);
+        vector vec3{};
+        vec3.emplace_back(std::move(v1));
+        vec3.emplace_back(std::move(v2));
+        vec3.emplace_back(std::move(v3));
+        expect(vec3.size() == 3);
+        expect(vec3[0] == 0);
+        expect(vec3[1] == 1);
+        expect(vec3[2] == 2);
+      }
+    };
+  }
+};
+
 template <template <typename T, std::size_t N> typename Test, typename U>
 void run() {
   Test<U, 0>::run();
@@ -818,4 +866,5 @@ void tests_vector() {
   run<tests_insert>();
   run<tests_erase>();
   run<tests_resize>();
+  run<tests_emplace_back>();
 }
