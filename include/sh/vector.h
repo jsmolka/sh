@@ -11,11 +11,10 @@
 
 namespace sh {
 
-template <typename T, std::size_t kSize = 0>
-class vector {};
+namespace detail {
 
-template <typename T>
-class vector<T, 0> {
+template <typename T, typename Derived>
+class vector_base {
  public:
   using value_type = T;
   using size_type = std::size_t;
@@ -29,69 +28,14 @@ class vector<T, 0> {
   using reverse_iterator = std::reverse_iterator<iterator>;
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-  vector() noexcept = default;
+  vector_base() noexcept = default;
 
-  vector(size_type count, const value_type& value) requires sh::copy_constructible<value_type> {
-    allocate(count);
-    head_ = std::uninitialized_fill_n(begin(), count, value);
-  }
-
-  explicit vector(size_type count) requires sh::value_constructible<T> {
-    allocate(count);
-    head_ = std::uninitialized_value_construct_n(begin(), count);
-  }
-
-  template <std::random_access_iterator I>
-    requires(std::constructible_from<value_type, std::iter_reference_t<I>>)
-  vector(I first, I last) {
-    const auto distance = std::distance(first, last);
-    assert(distance >= 0);
-    allocate(static_cast<size_type>(distance));
-    head_ = std::uninitialized_copy(first, last, begin());
-  }
-
-  vector(const vector& other) requires sh::copy_constructible<value_type>
-      : vector(other.begin(), other.end()) {}
-
-  vector(vector&& other) noexcept : data_(other.data_), head_(other.head_), last_(other.last_) {
-    other.data_ = nullptr;
-  }
-
-  vector(std::initializer_list<value_type> init) requires sh::copy_constructible<value_type>
-      : vector(init.begin(), init.end()) {}
-
-  ~vector() {
-    if (data_) {
-      destroy();
-      deallocate();
-    }
-  }
-
-  auto operator=(std::initializer_list<value_type> init)
-      -> vector& requires sh::copy_constructible<value_type> {
-    assign(init.begin(), init.end());
-    return *this;
-  }
-
-  auto operator=(const vector& other) -> vector& requires sh::copy_constructible<value_type> {
-    if (this != &other) [[likely]] {
-      assign(other.begin(), other.end());
-    }
-    return *this;
-  }
-
-  auto operator=(vector&& other) -> vector& {
-    if (this != &other) [[likely]] {
-      this->~vector();
-      swap(other);
-      other.data_ = nullptr;
-    }
-    return *this;
-  }
+  vector_base(pointer data, pointer head, pointer last) noexcept
+      : data_(data), head_(head), last_(last) {}
 
   void assign(size_type count,
               const value_type& value) requires sh::copy_constructible<value_type> {
-    destroy();
+    std::destroy(begin(), end());
     uninitialized_reserve(count);
     head_ = std::uninitialized_fill_n(begin(), count, value);
   }
@@ -99,10 +43,8 @@ class vector<T, 0> {
   template <std::random_access_iterator I>
     requires std::constructible_from<value_type, std::iter_reference_t<I>>
   void assign(I first, I last) {
-    assert(!inside_this(first));
-    assert(!inside_this_inclusive(last));
-    destroy();
-    const difference_type distance = std::distance(first, last);
+    std::destroy(begin(), end());
+    const auto distance = std::distance(first, last);
     assert(distance >= 0);
     uninitialized_reserve(static_cast<size_type>(distance));
     head_ = std::uninitialized_copy(first, last, begin());
@@ -212,13 +154,13 @@ class vector<T, 0> {
 
   void reserve(size_type capacity) {
     if (capacity > this->capacity()) {
-      reallocate(capacity);
+      static_cast<Derived*>(this)->reallocate(capacity);
     }
   }
 
   void shrink_to_fit() {
     if (data_) {
-      reallocate(size());
+      static_cast<Derived*>(this)->reallocate(size());
     }
   }
 
@@ -236,7 +178,6 @@ class vector<T, 0> {
       grow_to_fit();
       where = end();
     } else {
-      assert(inside_this(pos));
       const auto distance = std::distance(cbegin(), pos);
       grow_to_fit();
       where = begin() + distance;
@@ -262,7 +203,6 @@ class vector<T, 0> {
   auto insert(const_iterator pos, size_type count, const value_type& value)
       -> iterator requires std::move_constructible<value_type> && sh::move_assignable<value_type> &&
       sh::copy_constructible<value_type> {
-    assert(inside_this_inclusive(pos));
     if (count == 0) [[unlikely]] {
       return pos;
     }
@@ -291,9 +231,6 @@ class vector<T, 0> {
   auto insert(const_iterator pos, I first, I last)
       -> iterator requires std::move_constructible<value_type> && sh::move_assignable<value_type> &&
       sh::copy_constructible<value_type> {
-    assert(inside_this_inclusive(pos));
-    assert(!inside_this(first));
-    assert(!inside_this_inclusive(last));
     if (first == last) [[unlikely]] {
       return pos;
     }
@@ -327,7 +264,6 @@ class vector<T, 0> {
   }
 
   auto erase(const_iterator pos) -> iterator requires sh::move_assignable<value_type> {
-    assert(inside_this(pos));
     std::move(pos + 1, end(), pos);
     std::destroy_at(--head_);
     return pos;
@@ -335,8 +271,6 @@ class vector<T, 0> {
 
   auto erase(const_iterator pos, size_type count)
       -> iterator requires sh::move_assignable<value_type> {
-    // assert(inside_this(pos));
-    // assert(inside_this(pos + count));
     if (count) {
       std::move(pos + count, end(), pos);
       std::destroy(end() - count, end());
@@ -377,43 +311,19 @@ class vector<T, 0> {
     std::destroy_at(--head_);
   }
 
-  void swap(vector& other) {
-    using std::swap;
-    swap(data_, other.data_);
-    swap(head_, other.head_);
-    swap(last_, other.last_);
-  }
-
- private:
+ protected:
   using storage = std::aligned_storage_t<sizeof(value_type), alignof(value_type)>;
 
-  template <typename Iterator>
-  auto inside_this(Iterator it) const -> bool {
-    if constexpr (std::same_as<iterator, std::remove_const_t<Iterator>>) {
-      return it >= begin() && it < end();
-    } else if constexpr (std::same_as<reverse_iterator, std::remove_const_t<Iterator>>) {
-      return inside_this(it.base());
-    } else {
-      return false;
-    }
-  }
-
-  template <typename Iterator>
-  auto inside_this_inclusive(Iterator it) const -> bool {
-    if constexpr (std::same_as<iterator, std::remove_const_t<Iterator>>) {
-      return it >= begin() && it <= end();
-    } else if constexpr (std::same_as<reverse_iterator, std::remove_const_t<Iterator>>) {
-      return inside_this(it.base());
-    } else {
-      return false;
-    }
+  auto derived() -> Derived& {
+    return *static_cast<Derived*>(this);
   }
 
   template <typename... Args>
     requires std::constructible_from<value_type, Args...>
   void do_resize(size_type size, Args&&... args) {
     if (size > capacity()) {
-      reallocate(size);
+      derived().reallocate(size);
+      // Todo: uninitialized_fill
       for (; head_ != last_; ++head_) {
         std::construct_at(head_, std::forward<Args>(args)...);
       }
@@ -423,22 +333,10 @@ class vector<T, 0> {
     }
   }
 
-  void grow_to_fit() {
-    if (head_ == last_) [[unlikely]] {
-      reallocate(data_ ? 2 * capacity() : 1);
-    }
-  }
-
-  void grow_to_fit(size_type count) {
-    if (head_ + count > last_) {
-      reallocate(capacity() + count);
-    }
-  }
-
   void uninitialized_reserve(size_type capacity) {
     if (capacity > this->capacity()) {
       if (data_) {
-        deallocate();
+        derived().deallocate();
       }
       data_ = reinterpret_cast<pointer>(new storage[capacity]);
       head_ = data_;
@@ -446,76 +344,151 @@ class vector<T, 0> {
     }
   }
 
-  auto reallocate_nothrow_move_construct(pointer dest) -> pointer {
-    assert(data_ && dest);
-    dest = std::uninitialized_move(begin(), end(), dest);
-    destroy();
-    deallocate();
-    return dest;
-  }
-
-  auto reallocate_move_construct(pointer dest) -> pointer {
-    assert(data_ && dest);
-    try {
-      dest = std::uninitialized_move(begin(), end(), dest);
-      destroy();
-      deallocate();
-    } catch (...) {
-      delete[] reinterpret_cast<storage*>(dest);
-      throw;
+  void grow_to_fit() {
+    if (head_ == last_) [[unlikely]] {
+      // Todo: grow 1.5
+      derived().reallocate(data_ ? 2 * capacity() : 1);
     }
-    return dest;
   }
 
-  auto reallocate_nothrow_copy_construct(pointer dest) -> pointer {
-    assert(data_ && dest);
-    dest = std::uninitialized_copy(begin(), end(), dest);
-    destroy();
-    deallocate();
-    return dest;
-  }
-
-  auto reallocate_copy_construct(pointer dest) -> pointer {
-    assert(data_ && dest);
-    try {
-      dest = std::uninitialized_copy(begin(), end(), dest);
-      destroy();
-      deallocate();
-    } catch (...) {
-      delete[] reinterpret_cast<storage*>(dest);
-      throw;
+  void grow_to_fit(size_type count) {
+    if (head_ + count > last_) {
+      derived().reallocate(capacity() + count);
     }
-    return dest;
   }
 
   void destroy() {
     std::destroy(begin(), end());
   }
 
-  void reallocate(size_type capacity) {
-    assert(capacity > 0);
+  pointer head_{};
+  pointer data_{};
+  pointer last_{};
+};
 
-    pointer data_new = reinterpret_cast<pointer>(new storage[capacity]);
-    pointer head_new;
+}  // namespace detail
 
-    if (data_) {
-      if constexpr (std::is_nothrow_move_constructible_v<value_type>) {
-        head_new = reallocate_nothrow_move_construct(data_new);
-      } else if constexpr (std::is_move_constructible_v<value_type>) {
-        head_new = reallocate_move_construct(data_new);
-      } else if constexpr (std::is_nothrow_copy_constructible_v<value_type>) {
-        head_new = reallocate_nothrow_copy_construct(data_new);
-      } else {
-        head_new = reallocate_copy_construct(data_new);
-      }
-    } else {
-      head_new = data_new;
-    }
+template <typename T, std::size_t kSize = 0>
+class vector {};
 
-    data_ = data_new;
-    head_ = head_new;
-    last_ = data_ + capacity;
+template <typename T>
+  requires sh::move_constructible<T> || sh::copy_constructible<T>
+class vector<T, 0> : private detail::vector_base<T, vector<T>> {
+ private:
+  using base = detail::vector_base<T, vector<T>>;
+  friend class base;
+
+ public:
+  using typename base::value_type;
+  using typename base::size_type;
+  using typename base::difference_type;
+  using typename base::reference;
+  using typename base::const_reference;
+  using typename base::pointer;
+  using typename base::const_pointer;
+  using typename base::iterator;
+  using typename base::const_iterator;
+  using typename base::reverse_iterator;
+  using typename base::const_reverse_iterator;
+
+  vector() noexcept = default;
+
+  vector(size_type count, const value_type& value) requires sh::copy_constructible<value_type> {
+    allocate(count);
+    head_ = std::uninitialized_fill_n(begin(), count, value);
   }
+
+  explicit vector(size_type count) requires sh::value_constructible<T> {
+    allocate(count);
+    head_ = std::uninitialized_value_construct_n(begin(), count);
+  }
+
+  template <std::random_access_iterator I>
+    requires(std::constructible_from<value_type, std::iter_reference_t<I>>)
+  vector(I first, I last) {
+    const auto distance = std::distance(first, last);
+    assert(distance >= 0);
+    allocate(static_cast<size_type>(distance));
+    head_ = std::uninitialized_copy(first, last, begin());
+  }
+
+  vector(const vector& other) requires sh::copy_constructible<value_type>
+      : vector(other.begin(), other.end()) {}
+
+  vector(vector&& other) noexcept : base(other.data_, other.head_, other.last_) {
+    other.data_ = nullptr;
+  }
+
+  vector(std::initializer_list<value_type> init) requires sh::copy_constructible<value_type>
+      : vector(init.begin(), init.end()) {}
+
+  ~vector() {
+    if (data_) {
+      std::destroy(begin(), end());
+      deallocate();
+    }
+  }
+
+  auto operator=(std::initializer_list<value_type> init)
+      -> vector& requires sh::copy_constructible<value_type> {
+    assign(init.begin(), init.end());
+    return *this;
+  }
+
+  auto operator=(const vector& other) -> vector& requires sh::copy_constructible<value_type> {
+    if (this != &other) [[likely]] {
+      assign(other.begin(), other.end());
+    }
+    return *this;
+  }
+
+  auto operator=(vector&& other) -> vector& {
+    if (this != &other) [[likely]] {
+      this->~vector();
+      data_ = other.data_;
+      head_ = other.head_;
+      last_ = other.last_;
+      other.data_ = nullptr;
+    }
+    return *this;
+  }
+
+  void swap(vector& other) {
+    using std::swap;
+    swap(data_, other.data_);
+    swap(head_, other.head_);
+    swap(last_, other.last_);
+  }
+
+  using base::assign;
+  using base::operator[];
+  using base::front;
+  using base::back;
+  using base::data;
+  using base::begin;
+  using base::end;
+  using base::cbegin;
+  using base::cend;
+  using base::rbegin;
+  using base::rend;
+  using base::crbegin;
+  using base::crend;
+  using base::empty;
+  using base::size;
+  using base::capacity;
+  using base::reserve;
+  using base::shrink_to_fit;
+  using base::clear;
+  using base::emplace;
+  using base::insert;
+  using base::erase;
+  using base::resize;
+  using base::emplace_back;
+  using base::push_back;
+  using base::pop_back;
+
+ private:
+  using typename base::storage;
 
   void allocate(size_type capacity) {
     data_ = capacity ? reinterpret_cast<pointer>(new storage[capacity]) : nullptr;
@@ -528,9 +501,37 @@ class vector<T, 0> {
     delete[] reinterpret_cast<storage*>(data_);
   }
 
-  pointer head_{};
-  pointer data_{};
-  pointer last_{};
+  void reallocate(size_type capacity) {
+    assert(capacity > 0);
+
+    pointer data_new = reinterpret_cast<pointer>(new storage[capacity]);
+    pointer head_new;
+
+    if (data_) {
+      try {
+        if constexpr (sh::move_constructible<value_type>) {
+          head_new = std::uninitialized_move(begin(), end(), data_new);
+        } else {
+          head_new = std::uninitialized_copy(begin(), end(), data_new);
+        }
+        std::destroy(begin(), end());
+        deallocate();
+      } catch (...) {
+        delete[] reinterpret_cast<storage*>(data_new);
+        throw;
+      }
+    } else {
+      head_new = data_new;
+    }
+
+    data_ = data_new;
+    head_ = head_new;
+    last_ = data_ + capacity;
+  }
+
+  using base::data_;
+  using base::head_;
+  using base::last_;
 };
 
 template <typename T, std::size_t kSize>

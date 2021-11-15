@@ -126,13 +126,12 @@ struct tests_constructor : public base<T, N> {
         vector vec1(3, v1);
         expect(vec1.size() == 3);
         expect(vec1.capacity() == capacity(3));
-        expect(vec1[0] == 1);
-        expect(vec1[1] == 1);
-        expect(vec1[2] == 1);
+        expect(bool(vec1 == vector{1, 1, 1}));
 
         vector vec2(0, v1);
         expect(vec2.size() == 0);
         expect(vec2.capacity() == N);
+        expect(bool(vec2 == vector{}));
       }
     };
 
@@ -157,14 +156,13 @@ struct tests_constructor : public base<T, N> {
         vector vec2(vec1.begin(), vec1.end());
         expect(vec2.size() == 3);
         expect(vec2.capacity() == capacity(3));
-        expect(vec1[0] == vec2[0]);
-        expect(vec1[1] == vec2[1]);
-        expect(vec1[2] == vec2[2]);
+        expect(bool(vec1 == vec2));
 
         vector vec3{};
         vector vec4(vec3.begin(), vec3.end());
         expect(vec3.size() == 0);
         expect(vec3.capacity() == N);
+        expect(bool(vec3 == vec4));
       }
     };
 
@@ -174,25 +172,26 @@ struct tests_constructor : public base<T, N> {
         vector vec2(vec1);
         expect(vec2.size() == 3);
         expect(vec2.capacity() == capacity(3));
-        expect(vec1[0] == vec2[0]);
-        expect(vec1[1] == vec2[1]);
-        expect(vec1[2] == vec2[2]);
+        expect(bool(vec1 == vec2));
       }
     };
 
     member("vector(vector&&)") = []() {
-      if constexpr (sh::copy_constructible<T>) {
-        vector vec1{0, 1, 2};
-        const auto data = vec1.data();
-        vector vec2(std::move(vec1));
-        expect(vec1.data() == nullptr);
-        expect(vec2.data() == data);
-        expect(vec2.size() == 3);
-        expect(vec2.capacity() == capacity(3));
-        expect(vec2[0] == 0);
-        expect(vec2[1] == 1);
-        expect(vec2[2] == 2);
-      }
+      vector vec1{};
+      vec1.emplace_back(0);
+      vec1.emplace_back(1);
+      vec1.emplace_back(2);
+      const auto data = vec1.data();
+      const auto capacity = vec1.capacity();
+
+      vector vec2(std::move(vec1));
+      expect(vec1.data() == nullptr);
+      expect(vec2.data() == data);
+      expect(vec2.size() == 3);
+      expect(vec2.capacity() == capacity);
+      expect(vec2[0] == 0);
+      expect(vec2[1] == 1);
+      expect(vec2[2] == 2);
     };
 
     member("vector(initializer_list)") = []() {
@@ -200,9 +199,7 @@ struct tests_constructor : public base<T, N> {
         vector vec1{0, 1, 2};
         expect(vec1.size() == 3);
         expect(vec1.capacity() == capacity(3));
-        expect(vec1[0] == T{0});
-        expect(vec1[1] == T{1});
-        expect(vec1[2] == T{2});
+        expect(bool(vec1 == vector{0, 1, 2}));
       }
     };
   }
@@ -226,10 +223,10 @@ struct tests_comparison_operator : base<T, N> {
       vec2.emplace_back(1);
       vec2.emplace_back(2);
 
-      expect(static_cast<bool>(vec1 == vec2));
+      expect(bool(vec1 == vec2));
       vec1.emplace_back(3);
       vec2.emplace_back(4);
-      expect(!static_cast<bool>(vec1 == vec2));
+      expect(!bool(vec1 == vec2));
     };
 
     member("operator!=") = []() {
@@ -242,9 +239,9 @@ struct tests_comparison_operator : base<T, N> {
       vec2.emplace_back(0);
       vec2.emplace_back(1);
 
-      expect(static_cast<bool>(vec1 != vec2));
+      expect(bool(vec1 != vec2));
       vec2.emplace_back(2);
-      expect(!static_cast<bool>(vec1 != vec2));
+      expect(!bool(vec1 != vec2));
     };
   }
 };
@@ -263,13 +260,12 @@ struct tests_assign : base<T, N> {
         vec1.assign(3, v1);
         expect(vec1.size() == 3);
         expect(vec1.capacity() == capacity(3));
-        expect(vec1[0] == 1);
-        expect(vec1[1] == 1);
-        expect(vec1[2] == 1);
+        expect(bool(vec1 == vector{1, 1, 1}));
 
         vec1.assign(0, v1);
         expect(vec1.size() == 0);
         expect(vec1.capacity() == capacity(3));
+        expect(bool(vec1 == vector{}));
       }
     };
 
@@ -280,14 +276,13 @@ struct tests_assign : base<T, N> {
         vec2.assign(vec1.begin(), vec1.end());
         expect(vec2.size() == 3);
         expect(vec2.capacity() == capacity(3));
-        expect(vec1[0] == vec2[0]);
-        expect(vec1[1] == vec2[1]);
-        expect(vec1[2] == vec2[2]);
+        expect(bool(vec1 == vec2));
 
         vector vec3{};
         vec2.assign(vec3.begin(), vec3.end());
         expect(vec2.size() == 0);
         expect(vec2.capacity() == capacity(3));
+        expect(bool(vec2 == vec3));
       }
     };
 
@@ -297,13 +292,12 @@ struct tests_assign : base<T, N> {
         vec1.assign({0, 1, 2});
         expect(vec1.size() == 3);
         expect(vec1.capacity() == capacity(3));
-        expect(vec1[0] == 0);
-        expect(vec1[1] == 1);
-        expect(vec1[2] == 2);
+        expect(bool(vec1 == vector{0, 1, 2}));
 
         vec1.assign({});
         expect(vec1.size() == 0);
         expect(vec1.capacity() == capacity(3));
+        expect(bool(vec1 == vector{}));
       }
     };
   }
@@ -323,19 +317,19 @@ struct tests_assignment_operator : base<T, N> {
         vec2 = vec1;
         expect(vec2.size() == 3);
         expect(vec2.capacity() == capacity(3));
-        expect(vec1[0] == vec2[0]);
-        expect(vec1[1] == vec2[1]);
-        expect(vec1[2] == vec2[2]);
+        expect(bool(vec1 == vec2));
 
         vector vec3{};
         vector vec4 = vec3;
         expect(vec4.size() == 0);
         expect(vec4.capacity() == capacity(0));
+        expect(bool(vec3 == vec4));
 
         vector vec5{0, 1, 2};
         const auto data = vec5.data();
         vec5 = vec5;
         expect(vec5.data() == data);
+        expect(bool(vec5 == vector{0, 1, 2}));
       }
     };
 
@@ -346,6 +340,7 @@ struct tests_assignment_operator : base<T, N> {
       vec1.emplace_back(2);
       const auto data = vec1.data();
       const auto capacity = vec1.capacity();
+
       vector vec2{};
       vec2 = std::move(vec1);
       expect(vec1.data() == nullptr);
@@ -368,13 +363,12 @@ struct tests_assignment_operator : base<T, N> {
         vec1 = {0, 1, 2};
         expect(vec1.size() == 3);
         expect(vec1.capacity() == capacity(3));
-        expect(vec1[0] == 0);
-        expect(vec1[1] == 1);
-        expect(vec1[2] == 2);
+        expect(bool(vec1 == vector{0, 1, 2}));
 
         vec1 = {};
         expect(vec1.size() == 0);
         expect(vec1.capacity() == capacity(3));
+        expect(bool(vec1 == vector{}));
       }
     };
   }
@@ -435,7 +429,7 @@ struct tests_accessors : base<T, N> {
       expect(const_cast<const vector&>(vec1).front() == 0);
     };
 
-    member("end()") = []() {
+    member("back()") = []() {
       vector vec1{};
       vec1.emplace_back(0);
       vec1.emplace_back(1);
@@ -523,7 +517,11 @@ struct tests_emplace : base<T, N> {
         vec1.emplace(vec1.begin(), 1);
         vec1.emplace(vec1.begin() + 2, 2);
         vec1.emplace(vec1.end(), 3);
-        expect(static_cast<bool>(vec1 == vector{1, 0, 2, 0, 3}));
+        expect(vec1[0] == 1);
+        expect(vec1[1] == 0);
+        expect(vec1[2] == 2);
+        expect(vec1[3] == 0);
+        expect(vec1[4] == 3);
       }
     };
   }
@@ -546,7 +544,7 @@ struct tests_insert : base<T, N> {
         vec1.insert(vec1.begin(), v1);
         vec1.insert(vec1.begin() + 2, v2);
         vec1.insert(vec1.end(), v3);
-        expect(static_cast<bool>(vec1 == vector{1, 0, 2, 0, 3}));
+        expect(bool(vec1 == vector{1, 0, 2, 0, 3}));
       }
     };
 
@@ -576,55 +574,55 @@ struct tests_insert : base<T, N> {
         vector vec1(2, 0);
         auto pos = vec1.insert(vec1.end(), 3, 1);
         expect(pos == vec1.begin() + 2);
-        expect(static_cast<bool>(vec1 == vector{0, 0, 1, 1, 1}));
+        expect(bool(vec1 == vector{0, 0, 1, 1, 1}));
 
         vector vec2(2, 0);
         pos = vec2.insert(vec2.begin(), 3, 1);
         expect(pos == vec2.begin());
-        expect(static_cast<bool>(vec2 == vector{1, 1, 1, 0, 0}));
+        expect(bool(vec2 == vector{1, 1, 1, 0, 0}));
 
         vector vec3(2, 0);
         pos = vec3.insert(vec3.begin() + 1, 3, 1);
         expect(pos == vec3.begin() + 1);
-        expect(static_cast<bool>(vec3 == vector{0, 1, 1, 1, 0}));
+        expect(bool(vec3 == vector{0, 1, 1, 1, 0}));
 
         // count < size
         vector vec4(3, 0);
         pos = vec4.insert(vec4.end(), 2, 1);
         expect(pos == vec4.begin() + 3);
-        expect(static_cast<bool>(vec4 == vector{0, 0, 0, 1, 1}));
+        expect(bool(vec4 == vector{0, 0, 0, 1, 1}));
 
         vector vec5(3, 0);
         pos = vec5.insert(vec5.begin(), 2, 1);
         expect(pos == vec5.begin());
-        expect(static_cast<bool>(vec5 == vector{1, 1, 0, 0, 0}));
+        expect(bool(vec5 == vector{1, 1, 0, 0, 0}));
 
         vector vec6(3, 0);
         pos = vec6.insert(vec6.begin() + 1, 2, 1);
         expect(pos == vec6.begin() + 1);
-        expect(static_cast<bool>(vec6 == vector{0, 1, 1, 0, 0}));
+        expect(bool(vec6 == vector{0, 1, 1, 0, 0}));
 
         // count == size
         vector vec7(2, 0);
         pos = vec7.insert(vec7.end(), 2, 1);
         expect(pos == vec7.begin() + 2);
-        expect(static_cast<bool>(vec7 == vector{0, 0, 1, 1}));
+        expect(bool(vec7 == vector{0, 0, 1, 1}));
 
         vector vec8(2, 0);
         pos = vec8.insert(vec8.begin(), 2, 1);
         expect(pos == vec8.begin());
-        expect(static_cast<bool>(vec8 == vector{1, 1, 0, 0}));
+        expect(bool(vec8 == vector{1, 1, 0, 0}));
 
         vector vec9(2, 0);
         pos = vec9.insert(vec9.begin() + 1, 2, 1);
         expect(pos == vec9.begin() + 1);
-        expect(static_cast<bool>(vec9 == vector{0, 1, 1, 0}));
+        expect(bool(vec9 == vector{0, 1, 1, 0}));
 
         // count == 0
         vector vec10(2, 0);
         pos = vec10.insert(vec10.end(), 0, 1);
         expect(pos == vec10.end());
-        expect(static_cast<bool>(vec10 == vector{0, 0}));
+        expect(bool(vec10 == vector{0, 0}));
       }
     };
 
@@ -635,55 +633,55 @@ struct tests_insert : base<T, N> {
         vector vec1(2, 0);
         auto pos = vec1.insert(vec1.end(), {1, 2, 3});
         expect(pos == vec1.begin() + 2);
-        expect(static_cast<bool>(vec1 == vector{0, 0, 1, 2, 3}));
+        expect(bool(vec1 == vector{0, 0, 1, 2, 3}));
 
         vector vec2(2, 0);
         pos = vec2.insert(vec2.begin(), {1, 2, 3});
         expect(pos == vec2.begin());
-        expect(static_cast<bool>(vec2 == vector{1, 2, 3, 0, 0}));
+        expect(bool(vec2 == vector{1, 2, 3, 0, 0}));
 
         vector vec3(2, 0);
         pos = vec3.insert(vec3.begin() + 1, {1, 2, 3});
         expect(pos == vec3.begin() + 1);
-        expect(static_cast<bool>(vec3 == vector{0, 1, 2, 3, 0}));
+        expect(bool(vec3 == vector{0, 1, 2, 3, 0}));
 
         // count < size
         vector vec4(3, 0);
         pos = vec4.insert(vec4.end(), {1, 2});
         expect(pos == vec4.begin() + 3);
-        expect(static_cast<bool>(vec4 == vector{0, 0, 0, 1, 2}));
+        expect(bool(vec4 == vector{0, 0, 0, 1, 2}));
 
         vector vec5(3, 0);
         pos = vec5.insert(vec5.begin(), {1, 2});
         expect(pos == vec5.begin());
-        expect(static_cast<bool>(vec5 == vector{1, 2, 0, 0, 0}));
+        expect(bool(vec5 == vector{1, 2, 0, 0, 0}));
 
         vector vec6(3, 0);
         pos = vec6.insert(vec6.begin() + 1, {1, 2});
         expect(pos == vec6.begin() + 1);
-        expect(static_cast<bool>(vec6 == vector{0, 1, 2, 0, 0}));
+        expect(bool(vec6 == vector{0, 1, 2, 0, 0}));
 
         // count == size
         vector vec7(2, 0);
         pos = vec7.insert(vec7.end(), {1, 2});
         expect(pos == vec7.begin() + 2);
-        expect(static_cast<bool>(vec7 == vector{0, 0, 1, 2}));
+        expect(bool(vec7 == vector{0, 0, 1, 2}));
 
         vector vec8(2, 0);
         pos = vec8.insert(vec8.begin(), {1, 2});
         expect(pos == vec8.begin());
-        expect(static_cast<bool>(vec8 == vector{1, 2, 0, 0}));
+        expect(bool(vec8 == vector{1, 2, 0, 0}));
 
         vector vec9(2, 0);
         pos = vec9.insert(vec9.begin() + 1, {1, 2});
         expect(pos == vec9.begin() + 1);
-        expect(static_cast<bool>(vec9 == vector{0, 1, 2, 0}));
+        expect(bool(vec9 == vector{0, 1, 2, 0}));
 
         // count == 0
         vector vec10(2, 0);
         pos = vec10.insert(vec10.end(), {});
         expect(pos == vec10.end());
-        expect(static_cast<bool>(vec10 == vector{0, 0}));
+        expect(bool(vec10 == vector{0, 0}));
       }
     };
   }
@@ -700,12 +698,12 @@ struct tests_erase : base<T, N> {
         vector vec1(2, 0);
         auto pos = vec1.erase(vec1.begin());
         expect(pos == vec1.begin());
-        expect(static_cast<bool>(vec1 == vector{0}));
+        expect(bool(vec1 == vector{0}));
 
         vector vec2(2, 0);
         pos = vec2.erase(vec2.begin() + 1);
         expect(pos == vec2.end());
-        expect(static_cast<bool>(vec2 == vector{0}));
+        expect(bool(vec2 == vector{0}));
       }
     };
 
@@ -714,17 +712,17 @@ struct tests_erase : base<T, N> {
         vector vec1{0, 1, 2};
         auto pos = vec1.erase(vec1.begin(), 2);
         expect(pos == vec1.begin());
-        expect(static_cast<bool>(vec1 == vector{2}));
+        expect(bool(vec1 == vector{2}));
 
         vector vec2{0, 1, 2};
         pos = vec2.erase(vec2.begin() + 1, 2);
         expect(pos == vec2.end());
-        expect(static_cast<bool>(vec2 == vector{0}));
+        expect(bool(vec2 == vector{0}));
 
         vector vec3{0, 1, 2};
         pos = vec3.erase(vec3.begin(), std::size_t(0));
         expect(pos == vec3.begin());
-        expect(static_cast<bool>(vec3 == vector{0, 1, 2}));
+        expect(bool(vec3 == vector{0, 1, 2}));
       }
     };
 
@@ -733,17 +731,17 @@ struct tests_erase : base<T, N> {
         vector vec1{0, 1, 2};
         auto pos = vec1.erase(vec1.begin(), vec1.begin() + 2);
         expect(pos == vec1.begin());
-        expect(static_cast<bool>(vec1 == vector{2}));
+        expect(bool(vec1 == vector{2}));
 
         vector vec2{0, 1, 2};
         pos = vec2.erase(vec2.begin() + 1, vec2.end());
         expect(pos == vec2.end());
-        expect(static_cast<bool>(vec2 == vector{0}));
+        expect(bool(vec2 == vector{0}));
 
         vector vec3{0, 1, 2};
         pos = vec3.erase(vec3.begin(), vec3.begin());
         expect(pos == vec3.begin());
-        expect(static_cast<bool>(vec3 == vector{0, 1, 2}));
+        expect(bool(vec3 == vector{0, 1, 2}));
       }
     };
   }
@@ -763,12 +761,12 @@ struct tests_resize : base<T, N> {
         vec1.resize(5, v1);
         expect(vec1.size() == 5);
         expect(vec1.capacity() == capacity(5));
-        expect(static_cast<bool>(vec1 == vector{1, 1, 1, 1, 1}));
+        expect(bool(vec1 == vector{1, 1, 1, 1, 1}));
 
         vec1.resize(2, v1);
         expect(vec1.size() == 2);
         expect(vec1.capacity() == capacity(5));
-        expect(static_cast<bool>(vec1 == vector{1, 1}));
+        expect(bool(vec1 == vector{1, 1}));
       }
     };
 
@@ -778,12 +776,12 @@ struct tests_resize : base<T, N> {
         vec1.resize(5);
         expect(vec1.size() == 5);
         expect(vec1.capacity() == capacity(5));
-        expect(static_cast<bool>(vec1 == vector{0, 0, 0, 0, 0}));
+        expect(bool(vec1 == vector{0, 0, 0, 0, 0}));
 
         vec1.resize(2);
         expect(vec1.size() == 2);
         expect(vec1.capacity() == capacity(5));
-        expect(static_cast<bool>(vec1 == vector{0, 0}));
+        expect(bool(vec1 == vector{0, 0}));
       }
     };
   }
@@ -815,9 +813,7 @@ struct tests_emplace_back : base<T, N> {
         vec2.emplace_back(v2);
         vec2.emplace_back(v3);
         expect(vec2.size() == 3);
-        expect(vec2[0] == 0);
-        expect(vec2[1] == 1);
-        expect(vec2[2] == 2);
+        expect(bool(vec2 == vector{0, 1, 2}));
       }
 
       if constexpr (sh::move_constructible<T>) {
@@ -854,9 +850,7 @@ struct tests_push_back : base<T, N> {
         vec2.push_back(v2);
         vec2.push_back(v3);
         expect(vec2.size() == 3);
-        expect(vec2[0] == 0);
-        expect(vec2[1] == 1);
-        expect(vec2[2] == 2);
+        expect(bool(vec2 == vector{0, 1, 2}));
       }
     };
 

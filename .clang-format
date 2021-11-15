@@ -8,6 +8,7 @@ IndentPPDirectives: AfterHash
 IndentRequires: 'true'
 IndentWidth: '2'
 Language: Cpp
+SortUsingDeclarations: 'false'
 TabWidth: '2'
 UseTab: Never
 IncludeCategories:
