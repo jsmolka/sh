@@ -159,7 +159,7 @@ class vector_base {
   }
 
   void shrink_to_fit() {
-    if (data_) {
+    if (derived().is_heap_allocated()) {
       static_cast<Derived*>(this)->reallocate(size());
     }
   }
@@ -335,7 +335,7 @@ class vector_base {
 
   void uninitialized_reserve(size_type capacity) {
     if (capacity > this->capacity()) {
-      if (data_) {
+      if (derived().is_heap_allocated()) {
         derived().deallocate();
       }
       data_ = reinterpret_cast<pointer>(new storage[capacity]);
@@ -369,14 +369,205 @@ class vector_base {
 }  // namespace detail
 
 template <typename T, std::size_t kSize = 0>
-class vector {};
+  requires sh::move_constructible<T> || sh::copy_constructible<T>
+class vector : private detail::vector_base<T, vector<T, kSize>> {
+ private:
+  friend class detail::vector_base<T, vector<T, kSize>>;
+  using base = detail::vector_base<T, vector<T, kSize>>;
+
+ public:
+  using typename base::value_type;
+  using typename base::size_type;
+  using typename base::difference_type;
+  using typename base::reference;
+  using typename base::const_reference;
+  using typename base::pointer;
+  using typename base::const_pointer;
+  using typename base::iterator;
+  using typename base::const_iterator;
+  using typename base::reverse_iterator;
+  using typename base::const_reverse_iterator;
+
+  vector() noexcept
+      : base(reinterpret_cast<pointer>(stack_), reinterpret_cast<pointer>(stack_),
+             reinterpret_cast<pointer>(stack_) + kSize) {}
+
+  vector(size_type count, const value_type& value) requires sh::copy_constructible<value_type>
+      : vector() {
+    allocate(count);
+    head_ = std::uninitialized_fill_n(begin(), count, value);
+  }
+
+  explicit vector(size_type count) requires sh::value_constructible<T> : vector() {
+    allocate(count);
+    head_ = std::uninitialized_value_construct_n(begin(), count);
+  }
+
+  template <std::random_access_iterator I>
+    requires(std::constructible_from<value_type, std::iter_reference_t<I>>)
+  vector(I first, I last) : vector() {
+    const auto distance = std::distance(first, last);
+    assert(distance >= 0);
+    allocate(static_cast<size_type>(distance));
+    head_ = std::uninitialized_copy(first, last, begin());
+  }
+
+  vector(const vector& other) requires sh::copy_constructible<value_type>
+      : vector(other.begin(), other.end()) {}
+
+  vector(vector&& other) : vector() {
+    move(std::forward<vector>(other));
+  }
+
+  vector(std::initializer_list<value_type> init) requires sh::copy_constructible<value_type>
+      : vector(init.begin(), init.end()) {}
+
+  ~vector() {
+    destruct();
+  }
+
+  auto operator=(std::initializer_list<value_type> init)
+      -> vector& requires sh::copy_constructible<value_type> {
+    assign(init.begin(), init.end());
+    return *this;
+  }
+
+  auto operator=(const vector& other) -> vector& requires sh::copy_constructible<value_type> {
+    if (this != &other) [[likely]] {
+      assign(other.begin(), other.end());
+    }
+    return *this;
+  }
+
+  auto operator=(vector&& other) -> vector& {
+    if (this != &other) [[likely]] {
+      destruct();
+      head_ = reinterpret_cast<pointer>(stack_);
+      data_ = reinterpret_cast<pointer>(stack_);
+      last_ = reinterpret_cast<pointer>(stack_) + kSize;
+      move(std::forward<vector>(other));
+    }
+    return *this;
+  }
+
+  void swap(vector& other) {
+    using std::swap;
+    vector temp(std::move(other));
+    other = std::move(*this);
+    *this = std::move(temp);
+  }
+
+  using base::assign;
+  using base::operator[];
+  using base::front;
+  using base::back;
+  using base::data;
+  using base::begin;
+  using base::end;
+  using base::cbegin;
+  using base::cend;
+  using base::rbegin;
+  using base::rend;
+  using base::crbegin;
+  using base::crend;
+  using base::empty;
+  using base::size;
+  using base::capacity;
+  using base::reserve;
+  using base::shrink_to_fit;
+  using base::clear;
+  using base::emplace;
+  using base::insert;
+  using base::erase;
+  using base::resize;
+  using base::emplace_back;
+  using base::push_back;
+  using base::pop_back;
+
+ private:
+  using typename base::storage;
+
+  bool is_heap_allocated() {
+    return data_ && data_ != reinterpret_cast<const_pointer>(stack_);
+  }
+
+  void destruct() {
+    if (data_ == reinterpret_cast<pointer>(stack_)) {
+      std::destroy(begin(), end());
+    } else if (data_) {
+      std::destroy(begin(), end());
+      deallocate();
+    }
+  }
+
+  void move(vector&& other) {
+    if (other.data_ == reinterpret_cast<pointer>(other.stack_)) {
+      if constexpr (sh::move_constructible<value_type>) {
+        head_ = std::uninitialized_move(other.begin(), other.end(), head_);
+      } else {
+        head_ = std::uninitialized_copy(other.begin(), other.end(), head_);
+      }
+      std::destroy(other.begin(), other.end());
+    } else {
+      data_ = other.data_;
+      head_ = other.head_;
+      last_ = other.last_;
+    }
+    other.data_ = nullptr;
+  }
+
+  void allocate(size_type capacity) {
+    if (capacity > kSize) {
+      data_ = reinterpret_cast<pointer>(new storage[capacity]);
+      head_ = data_;
+      last_ = data_ + capacity;
+    }
+  }
+
+  void deallocate() {
+    assert(data_ && data_ != reinterpret_cast<pointer>(stack_));
+    delete[] reinterpret_cast<storage*>(data_);
+  }
+
+  void reallocate(size_type capacity) {
+    assert(capacity > 0);
+
+    pointer data_new = reinterpret_cast<pointer>(new storage[capacity]);
+    pointer head_new;
+
+    try {
+      if constexpr (sh::move_constructible<value_type>) {
+        head_new = std::uninitialized_move(begin(), end(), data_new);
+      } else {
+        head_new = std::uninitialized_copy(begin(), end(), data_new);
+      }
+      std::destroy(begin(), end());
+      if (data_ != reinterpret_cast<pointer>(stack_)) {
+        deallocate();
+      }
+    } catch (...) {
+      delete[] reinterpret_cast<storage*>(data_new);
+      throw;
+    }
+
+    data_ = data_new;
+    head_ = head_new;
+    last_ = data_ + capacity;
+  }
+
+  using base::data_;
+  using base::head_;
+  using base::last_;
+
+  storage stack_[kSize];
+};
 
 template <typename T>
   requires sh::move_constructible<T> || sh::copy_constructible<T>
 class vector<T, 0> : private detail::vector_base<T, vector<T>> {
  private:
+  friend class detail::vector_base<T, vector<T>>;
   using base = detail::vector_base<T, vector<T>>;
-  friend class base;
 
  public:
   using typename base::value_type;
@@ -489,6 +680,10 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
 
  private:
   using typename base::storage;
+
+  bool is_heap_allocated() const {
+    return data_;
+  }
 
   void allocate(size_type capacity) {
     data_ = capacity ? reinterpret_cast<pointer>(new storage[capacity]) : nullptr;

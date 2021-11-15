@@ -115,9 +115,11 @@ struct tests_constructor : public base<T, N> {
       vector vec1{};
       expect(vec1.size() == 0);
       expect(vec1.capacity() == N);
-      expect(vec1.data() == nullptr);
-      expect(vec1.begin() == nullptr);
-      expect(vec1.end() == nullptr);
+      if constexpr (N == 0) {
+        expect(vec1.data() == nullptr);
+        expect(vec1.begin() == nullptr);
+        expect(vec1.end() == nullptr);
+      }
     };
 
     member("vector(size_type, const value_type&)") = []() {
@@ -913,6 +915,7 @@ struct tests_swap : base<T, N> {
 template <template <typename T, std::size_t N> typename Test, typename U>
 void run() {
   Test<U, 0>::run();
+  Test<U, 1>::run();
 }
 
 template <template <typename T, std::size_t N> typename Test>
