@@ -325,17 +325,15 @@ class vector_base {
       if (size > capacity()) {
         derived().reallocate(size);
       }
-      const auto count = size - this->size();
       if constexpr (sizeof...(Args) == 0) {
-        head_ = std::uninitialized_value_construct_n(head_, count);
+        std::uninitialized_value_construct(head_, data_ + size);
       } else {
-        head_ = std::uninitialized_fill_n(head_, count, std::forward<Args>(args)...);
+        std::uninitialized_fill(head_, data_ + size, std::forward<Args>(args)...);
       }
-
     } else if (size < this->size()) {
       std::destroy(begin() + size, end());
-      head_ = data_ + size;
     }
+    head_ = data_ + size;
   }
 
   void uninitialized_reserve(size_type capacity) {
