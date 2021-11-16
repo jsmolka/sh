@@ -1,6 +1,7 @@
 #include "tests_vector.h"
 
 #include <compare>
+#include <memory>
 
 #include <sh/vector.h>
 
@@ -41,13 +42,29 @@ struct type3 {
 
 struct type4 {
   type4() : type4(0) {}
-  type4(int value) : value(std::to_string(value)) {}
-  type4(type4&&) = default;
-  type4(const type4&) = delete;
-  type4& operator=(type4&&) = default;
-  type4& operator=(const type4&) = default;
-  auto operator<=>(const type4&) const = default;
-  std::string value;
+  type4(int value) : value(std::make_unique<int>(value)) {}
+  type4(type4&& other) : value(std::move(other.value)) {}
+  type4(const type4& other) : type4(*other.value) {}
+
+  auto operator=(type4&& other) -> type4& {
+    if (this != &other) [[likely]] {
+      value = std::move(other.value);
+    }
+    return *this;
+  }
+
+  auto operator=(const type4& other) -> type4& {
+    if (this != &other) [[likely]] {
+      value = std::make_unique<int>(*other.value);
+    }
+    return *this;
+  }
+
+  auto operator==(const type4& other) const -> bool {
+    return *value == *other.value;
+  }
+
+  std::unique_ptr<int> value;
 };
 
 template <typename T>
@@ -714,7 +731,9 @@ struct tests_erase : tests<T, N> {
         expect(eq(vec1.size(), 1));
         expect(eq(vec1[0], 0));
 
-        vector vec2(2, 0);
+        vector vec2{};
+        vec2.emplace_back(0);
+        vec2.emplace_back(0);
         pos = vec2.erase(vec2.begin() + 1);
         expect(eq(pos, vec2.end()));
         expect(eq(vec2.size(), 1));
@@ -981,7 +1000,7 @@ void run() {
   run<Test, type1>();
   run<Test, type2>();
   run<Test, type3>();
-  // run<Test, type4>();
+  run<Test, type4>();
 }
 
 void tests_vector() {
