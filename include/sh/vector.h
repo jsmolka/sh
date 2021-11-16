@@ -288,7 +288,7 @@ class vector_base {
     do_resize(size, value);
   }
 
-  void resize(size_type size) requires std::default_initializable<value_type> {
+  void resize(size_type size) requires sh::value_constructible<value_type> {
     do_resize(size);
   }
 
@@ -321,13 +321,18 @@ class vector_base {
   template <typename... Args>
     requires std::constructible_from<value_type, Args...>
   void do_resize(size_type size, Args&&... args) {
-    if (size > capacity()) {
-      derived().reallocate(size);
-      // Todo: uninitialized_fill
-      for (; head_ != last_; ++head_) {
-        std::construct_at(head_, std::forward<Args>(args)...);
+    if (size > this->size()) {
+      if (size > capacity()) {
+        derived().reallocate(size);
       }
-    } else if (size < capacity()) {
+      const auto count = size - this->size();
+      if constexpr (sizeof...(Args) == 0) {
+        head_ = std::uninitialized_value_construct_n(head_, count);
+      } else {
+        head_ = std::uninitialized_fill_n(head_, count, std::forward<Args>(args)...);
+      }
+
+    } else if (size < this->size()) {
       std::destroy(begin() + size, end());
       head_ = data_ + size;
     }

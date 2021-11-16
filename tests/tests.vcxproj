@@ -64,6 +64,7 @@
       <SupportJustMyCode>true</SupportJustMyCode>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <AdditionalOptions>/Ob3 /bigobj</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>shell32.lib</AdditionalDependencies>
@@ -78,7 +79,7 @@
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalOptions>/Ob3</AdditionalOptions>
+      <AdditionalOptions>/Ob3 /bigobj</AdditionalOptions>
       <PreprocessorDefinitions>NDEBUG</PreprocessorDefinitions>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>

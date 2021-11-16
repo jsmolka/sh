@@ -188,7 +188,9 @@ struct tests_constructor : public base<T, N> {
 
       vector vec2(std::move(vec1));
       expect(vec1.data() == nullptr);
-      expect(vec2.data() == data);
+      if constexpr (N < 3) {
+        expect(vec2.data() == data);
+      }
       expect(vec2.size() == 3);
       expect(vec2.capacity() == capacity);
       expect(vec2[0] == 0);
@@ -346,7 +348,9 @@ struct tests_assignment_operator : base<T, N> {
       vector vec2{};
       vec2 = std::move(vec1);
       expect(vec1.data() == nullptr);
-      expect(vec2.data() == data);
+      if constexpr (N < 3) {
+        expect(eq(vec2.data(), data));
+      }
       expect(vec2.size() == 3);
       expect(vec2.capacity() == capacity);
       expect(vec2[0] == 0);
@@ -354,7 +358,9 @@ struct tests_assignment_operator : base<T, N> {
       expect(vec2[2] == 2);
 
       vec2 = std::move(vec2);
-      expect(vec2.data() == data);
+      if constexpr (N < 3) {
+        expect(eq(vec2.data(), data));
+      }
       expect(vec2.size() == 3);
       expect(vec2.capacity() == capacity);
     };
@@ -761,8 +767,8 @@ struct tests_resize : base<T, N> {
         T v1(1);
         vector vec1{};
         vec1.resize(5, v1);
-        expect(vec1.size() == 5);
-        expect(vec1.capacity() == capacity(5));
+        expect(eq(vec1.size(), 5));
+        expect(eq(vec1.capacity(), capacity(5)));
         expect(bool(vec1 == vector{1, 1, 1, 1, 1}));
 
         vec1.resize(2, v1);
@@ -773,11 +779,11 @@ struct tests_resize : base<T, N> {
     };
 
     member("resize(size_type)") = []() {
-      if constexpr (std::default_initializable<T>) {
+      if constexpr (sh::value_constructible<T>) {
         vector vec1{};
         vec1.resize(5);
-        expect(vec1.size() == 5);
-        expect(vec1.capacity() == capacity(5));
+        expect(eq(vec1.size(), 5));
+        expect(eq(vec1.capacity(), capacity(5)));
         expect(bool(vec1 == vector{0, 0, 0, 0, 0}));
 
         vec1.resize(2);
@@ -916,6 +922,9 @@ template <template <typename T, std::size_t N> typename Test, typename U>
 void run() {
   Test<U, 0>::run();
   Test<U, 1>::run();
+  Test<U, 2>::run();
+  Test<U, 4>::run();
+  Test<U, 8>::run();
 }
 
 template <template <typename T, std::size_t N> typename Test>
