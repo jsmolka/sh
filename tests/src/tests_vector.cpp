@@ -952,6 +952,15 @@ struct tests_pop_back : tests<T, N> {
       vec1.pop_back();
       expect(eq(vec1.size(), 0));
     };
+
+    member("pop_back(size_type)") = []() {
+      vector vec1{};
+      vec1.emplace_back(0);
+      vec1.emplace_back(0);
+      expect(eq(vec1.size(), 2));
+      vec1.pop_back(2);
+      expect(eq(vec1.size(), 0));
+    };
   }
 };
 

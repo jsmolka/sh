@@ -308,7 +308,14 @@ class vector_base {
   }
 
   void pop_back() {
+    assert(!empty());
     std::destroy_at(--head_);
+  }
+
+  void pop_back(std::size_t count) {
+    assert(size() >= count);
+    std::destroy(end() - count, end());
+    head_ -= count;
   }
 
  protected:
