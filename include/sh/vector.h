@@ -159,7 +159,7 @@ class vector_base {
   }
 
   void shrink_to_fit() {
-    if (derived().is_heap_allocated()) {
+    if (static_cast<Derived*>(this)->is_heap_allocated()) {
       static_cast<Derived*>(this)->reallocate(size());
     }
   }
@@ -313,7 +313,7 @@ class vector_base {
   }
 
   void pop_back(std::size_t count) {
-    assert(size() >= count);
+    assert(count <= size());
     std::destroy(end() - count, end());
     head_ -= count;
   }
@@ -321,32 +321,28 @@ class vector_base {
  protected:
   using storage = std::aligned_storage_t<sizeof(value_type), alignof(value_type)>;
 
-  auto derived() -> Derived& {
-    return *static_cast<Derived*>(this);
-  }
-
   template <typename... Args>
     requires std::constructible_from<value_type, Args...>
   void do_resize(size_type size, Args&&... args) {
     if (size > this->size()) {
       if (size > capacity()) {
-        derived().reallocate(size);
+        static_cast<Derived*>(this)->reallocate(size);
       }
       if constexpr (sizeof...(Args) == 0) {
-        std::uninitialized_value_construct(head_, data_ + size);
+        std::uninitialized_value_construct(end(), begin() + size);
       } else {
-        std::uninitialized_fill(head_, data_ + size, std::forward<Args>(args)...);
+        std::uninitialized_fill(end(), begin() + size, std::forward<Args>(args)...);
       }
     } else if (size < this->size()) {
       std::destroy(begin() + size, end());
     }
-    head_ = data_ + size;
+    head_ = begin() + size;
   }
 
   void uninitialized_reserve(size_type capacity) {
     if (capacity > this->capacity()) {
-      if (derived().is_heap_allocated()) {
-        derived().deallocate();
+      if (static_cast<Derived*>(this)->is_heap_allocated()) {
+        static_cast<Derived*>(this)->deallocate();
       }
       data_ = reinterpret_cast<pointer>(new storage[capacity]);
       head_ = data_;
@@ -356,14 +352,13 @@ class vector_base {
 
   void grow_to_fit() {
     if (head_ == last_) [[unlikely]] {
-      // Todo: grow 1.5
-      derived().reallocate(data_ ? 2 * capacity() : 1);
+      static_cast<Derived*>(this)->reallocate(data_ ? (3 * capacity() + 1) / 2 : 1);
     }
   }
 
   void grow_to_fit(size_type count) {
     if (head_ + count > last_) {
-      derived().reallocate(capacity() + count);
+      static_cast<Derived*>(this)->reallocate(capacity() + count);
     }
   }
 
