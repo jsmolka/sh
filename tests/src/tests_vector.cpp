@@ -99,8 +99,8 @@ struct tests {
     return std::max(value, N);
   }
 
-  static auto member(std::string_view member) {
-    return make_test("vector<{}, {}>::{}", typeid(T).name(), N, member);
+  static auto make_test(std::string_view what) {
+    return ::make_test("vector<{}, {}>::{}", typeid(T).name(), N, what);
   }
 };
 
@@ -108,10 +108,10 @@ template <typename T, std::size_t N>
 struct tests_constructor : public tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
-  using tests<T, N>::member;
+  using tests<T, N>::make_test;
 
   static void run() {
-    member("vector()") = []() {
+    make_test("vector()") = []() {
       vector vec1{};
       expect(eq(vec1.size(), 0));
       expect(eq(vec1.capacity(), N));
@@ -126,7 +126,7 @@ struct tests_constructor : public tests<T, N> {
       }
     };
 
-    member("vector(size_type, const value_type&)") = []() {
+    make_test("vector(size_type, const value_type&)") = []() {
       if constexpr (sh::copy_constructible<T>) {
         T v1(1);
         vector vec1(3, v1);
@@ -141,7 +141,7 @@ struct tests_constructor : public tests<T, N> {
       }
     };
 
-    member("vector(size_type)") = []() {
+    make_test("vector(size_type)") = []() {
       if constexpr (sh::value_constructible<T>) {
         vector vec1(3);
         expect(eq(vec1.size(), 3));
@@ -156,7 +156,7 @@ struct tests_constructor : public tests<T, N> {
       }
     };
 
-    member("vector(Iterator, Iterator)") = []() {
+    make_test("vector(Iterator, Iterator)") = []() {
       if constexpr (sh::copy_constructible<T>) {
         vector vec1{0, 1, 2};
         vector vec2(vec1.begin(), vec1.end());
@@ -172,7 +172,7 @@ struct tests_constructor : public tests<T, N> {
       }
     };
 
-    member("vector(const vector&)") = []() {
+    make_test("vector(const vector&)") = []() {
       if constexpr (sh::copy_constructible<T>) {
         vector vec1{0, 1, 2};
         vector vec2(vec1);
@@ -188,7 +188,7 @@ struct tests_constructor : public tests<T, N> {
       }
     };
 
-    member("vector(vector&&)") = []() {
+    make_test("vector(vector&&)") = []() {
       vector vec1{};
       vec1.emplace_back(0);
       vec1.emplace_back(1);
@@ -209,7 +209,7 @@ struct tests_constructor : public tests<T, N> {
       }
     };
 
-    member("vector(initializer_list)") = []() {
+    make_test("vector(initializer_list)") = []() {
       if constexpr (sh::copy_constructible<T>) {
         vector vec1{0, 1, 2};
         expect(eq(vec1.size(), 3));
@@ -224,10 +224,10 @@ template <typename T, std::size_t N>
 struct tests_comparison_operator : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
-  using tests<T, N>::member;
+  using tests<T, N>::make_test;
 
   static void run() {
-    member("operator==") = []() {
+    make_test("operator==") = []() {
       vector vec1{};
       vector vec2{};
       expect(eq(vec1, vec2));
@@ -251,10 +251,10 @@ template <typename T, std::size_t N>
 struct tests_assign : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
-  using tests<T, N>::member;
+  using tests<T, N>::make_test;
 
   static void run() {
-    member("assign(size_type, const value_type&)") = []() {
+    make_test("assign(size_type, const value_type&)") = []() {
       if constexpr (sh::copy_constructible<T>) {
         T v1{1};
         vector vec1{};
@@ -270,7 +270,7 @@ struct tests_assign : tests<T, N> {
       }
     };
 
-    member("assign(InputIt, InputIt)") = []() {
+    make_test("assign(InputIt, InputIt)") = []() {
       if constexpr (sh::copy_constructible<T>) {
         vector vec1{};
         vector vec2{0, 1, 2};
@@ -288,7 +288,7 @@ struct tests_assign : tests<T, N> {
       }
     };
 
-    member("assign(initializer_list)") = []() {
+    make_test("assign(initializer_list)") = []() {
       if constexpr (sh::copy_constructible<T>) {
         vector vec1{};
         vec1.assign({0, 1, 2});
@@ -309,10 +309,10 @@ template <typename T, std::size_t N>
 struct tests_assignment_operator : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
-  using tests<T, N>::member;
+  using tests<T, N>::make_test;
 
   static void run() {
-    member("operator=(const vector&)") = []() {
+    make_test("operator=(const vector&)") = []() {
       if constexpr (sh::copy_constructible<T>) {
         vector vec1{};
         vector vec2{0, 1, 2};
@@ -336,7 +336,7 @@ struct tests_assignment_operator : tests<T, N> {
       }
     };
 
-    member("operator=(vector&&)") = []() {
+    make_test("operator=(vector&&)") = []() {
       vector vec1{};
       vec1.emplace_back(0);
       vec1.emplace_back(1);
@@ -375,7 +375,7 @@ struct tests_assignment_operator : tests<T, N> {
       }
     };
 
-    member("operator=(initializer_list)") = []() {
+    make_test("operator=(initializer_list)") = []() {
       if constexpr (sh::copy_constructible<T>) {
         vector vec1{};
         vec1 = {0, 1, 2};
@@ -395,10 +395,10 @@ struct tests_assignment_operator : tests<T, N> {
 template <typename T, std::size_t N>
 struct tests_accessors : tests<T, N> {
   using typename tests<T, N>::vector;
-  using tests<T, N>::member;
+  using tests<T, N>::make_test;
 
   static void run() {
-    member("begin()") = []() {
+    make_test("begin()") = []() {
       vector vec1{};
       vec1.emplace_back(0);
       vec1.emplace_back(1);
@@ -409,7 +409,7 @@ struct tests_accessors : tests<T, N> {
       expect(eq(const_cast<const vector&>(vec1).cbegin()[0], 0));
     };
 
-    member("end()") = []() {
+    make_test("end()") = []() {
       vector vec1{};
       vec1.emplace_back(0);
       vec1.emplace_back(1);
@@ -420,7 +420,7 @@ struct tests_accessors : tests<T, N> {
       expect(eq(const_cast<const vector&>(vec1).cend()[-1], 1));
     };
 
-    member("rbegin()") = []() {
+    make_test("rbegin()") = []() {
       vector vec1{};
       vec1.emplace_back(0);
       vec1.emplace_back(1);
@@ -431,7 +431,7 @@ struct tests_accessors : tests<T, N> {
       expect(eq(const_cast<const vector&>(vec1).crbegin()[0], 1));
     };
 
-    member("rend()") = []() {
+    make_test("rend()") = []() {
       vector vec1{};
       vec1.emplace_back(0);
       vec1.emplace_back(1);
@@ -442,7 +442,7 @@ struct tests_accessors : tests<T, N> {
       expect(eq(const_cast<const vector&>(vec1).crend()[-1], 0));
     };
 
-    member("front()") = []() {
+    make_test("front()") = []() {
       vector vec1{};
       vec1.emplace_back(0);
       vec1.emplace_back(1);
@@ -451,7 +451,7 @@ struct tests_accessors : tests<T, N> {
       expect(eq(const_cast<const vector&>(vec1).front(), 0));
     };
 
-    member("back()") = []() {
+    make_test("back()") = []() {
       vector vec1{};
       vec1.emplace_back(0);
       vec1.emplace_back(1);
@@ -466,10 +466,10 @@ template <typename T, std::size_t N>
 struct tests_reserve : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
-  using tests<T, N>::member;
+  using tests<T, N>::make_test;
 
   static void run() {
-    member("reserve(size_type)") = []() {
+    make_test("reserve(size_type)") = []() {
       vector vec1{};
       for (std::size_t reserve = 1; reserve < 32; reserve <<= 2) {
         vec1.reserve(reserve);
@@ -488,10 +488,10 @@ template <typename T, std::size_t N>
 struct tests_shrink_to_fit : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
-  using tests<T, N>::member;
+  using tests<T, N>::make_test;
 
   static void run() {
-    member("shrink_to_fit()") = []() {
+    make_test("shrink_to_fit()") = []() {
       vector vec1{};
       while (vec1.size() < 8) {
         vec1.emplace_back(0);
@@ -512,10 +512,10 @@ template <typename T, std::size_t N>
 struct tests_clear : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
-  using tests<T, N>::member;
+  using tests<T, N>::make_test;
 
   static void run() {
-    member("clear()") = []() {
+    make_test("clear()") = []() {
       vector vec1{};
       vec1.emplace_back(0);
       vec1.emplace_back(1);
@@ -534,10 +534,10 @@ struct tests_clear : tests<T, N> {
 template <typename T, std::size_t N>
 struct tests_emplace : tests<T, N> {
   using typename tests<T, N>::vector;
-  using tests<T, N>::member;
+  using tests<T, N>::make_test;
 
   static void run() {
-    member("emplace(const_iterator, Args...)") = []() {
+    make_test("emplace(const_iterator, Args...)") = []() {
       if constexpr (sh::move_constructible<T> && sh::move_assignable<T>) {
         vector vec1{};
         vec1.emplace_back(0);
@@ -559,10 +559,10 @@ template <typename T, std::size_t N>
 struct tests_insert : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
-  using tests<T, N>::member;
+  using tests<T, N>::make_test;
 
   static void run() {
-    member("insert(const_iterator, const value_type&)") = []() {
+    make_test("insert(const_iterator, const value_type&)") = []() {
       if constexpr (sh::move_constructible<T> && sh::move_assignable<T> &&
                     sh::copy_constructible<T>) {
         T v1(1);
@@ -576,7 +576,7 @@ struct tests_insert : tests<T, N> {
       }
     };
 
-    member("insert(const_iterator, value_type&&)") = []() {
+    make_test("insert(const_iterator, value_type&&)") = []() {
       if constexpr (sh::move_constructible<T> && sh::move_assignable<T>) {
         T v1(1);
         T v2(2);
@@ -595,7 +595,7 @@ struct tests_insert : tests<T, N> {
       }
     };
 
-    member("insert(const_iterator, size_type, const value_type&") = []() {
+    make_test("insert(const_iterator, size_type, const value_type&") = []() {
       if constexpr (sh::move_constructible<T> && sh::move_assignable<T> &&
                     sh::copy_constructible<T>) {
         // count > size
@@ -654,7 +654,7 @@ struct tests_insert : tests<T, N> {
       }
     };
 
-    member("insert(const_iterator, Iterator|std::initializer_list") = []() {
+    make_test("insert(const_iterator, Iterator|std::initializer_list") = []() {
       if constexpr (sh::move_constructible<T> && sh::move_assignable<T> &&
                     sh::copy_constructible<T>) {
         // count > size
@@ -718,10 +718,10 @@ struct tests_insert : tests<T, N> {
 template <typename T, std::size_t N>
 struct tests_erase : tests<T, N> {
   using typename tests<T, N>::vector;
-  using tests<T, N>::member;
+  using tests<T, N>::make_test;
 
   static void run() {
-    member("erase(const_iterator)") = []() {
+    make_test("erase(const_iterator)") = []() {
       if constexpr (sh::move_assignable<T>) {
         vector vec1{};
         vec1.emplace_back(0);
@@ -741,7 +741,7 @@ struct tests_erase : tests<T, N> {
       }
     };
 
-    member("erase(const_iterator, size_type)") = []() {
+    make_test("erase(const_iterator, size_type)") = []() {
       if constexpr (sh::move_assignable<T>) {
         vector vec1{};
         vec1.emplace_back(0);
@@ -774,7 +774,7 @@ struct tests_erase : tests<T, N> {
       }
     };
 
-    member("erase(const_iterator, const_iterator)") = []() {
+    make_test("erase(const_iterator, const_iterator)") = []() {
       if constexpr (sh::move_assignable<T>) {
         vector vec1{};
         vec1.emplace_back(0);
@@ -810,10 +810,10 @@ template <typename T, std::size_t N>
 struct tests_resize : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
-  using tests<T, N>::member;
+  using tests<T, N>::make_test;
 
   static void run() {
-    member("resize(size_type, const value_type&)") = []() {
+    make_test("resize(size_type, const value_type&)") = []() {
       if constexpr (sh::copy_constructible<T>) {
         T v1(1);
         vector vec1{};
@@ -829,7 +829,7 @@ struct tests_resize : tests<T, N> {
       }
     };
 
-    member("resize(size_type)") = []() {
+    make_test("resize(size_type)") = []() {
       if constexpr (sh::value_constructible<T>) {
         vector vec1{};
         vec1.resize(5);
@@ -855,10 +855,10 @@ template <typename T, std::size_t N>
 struct tests_emplace_back : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
-  using tests<T, N>::member;
+  using tests<T, N>::make_test;
 
   static void run() {
-    member("emplace_back(Args...)") = []() {
+    make_test("emplace_back(Args...)") = []() {
       vector vec1{};
       vec1.emplace_back(0);
       vec1.emplace_back(1);
@@ -901,10 +901,10 @@ template <typename T, std::size_t N>
 struct tests_push_back : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
-  using tests<T, N>::member;
+  using tests<T, N>::make_test;
 
   static void run() {
-    member("push_back(const value_type&)") = []() {
+    make_test("push_back(const value_type&)") = []() {
       if constexpr (sh::copy_constructible<T>) {
         T v1(0);
         T v2(1);
@@ -918,7 +918,7 @@ struct tests_push_back : tests<T, N> {
       }
     };
 
-    member("push_back(value_type&&)") = []() {
+    make_test("push_back(value_type&&)") = []() {
       if constexpr (sh::move_constructible<T>) {
         T v1(0);
         T v2(1);
@@ -940,10 +940,10 @@ template <typename T, std::size_t N>
 struct tests_pop_back : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
-  using tests<T, N>::member;
+  using tests<T, N>::make_test;
 
   static void run() {
-    member("pop_back()") = []() {
+    make_test("pop_back()") = []() {
       vector vec1{};
       vec1.emplace_back(0);
       vec1.emplace_back(0);
@@ -953,7 +953,7 @@ struct tests_pop_back : tests<T, N> {
       expect(eq(vec1.size(), 0));
     };
 
-    member("pop_back(size_type)") = []() {
+    make_test("pop_back(size_type)") = []() {
       vector vec1{};
       vec1.emplace_back(0);
       vec1.emplace_back(0);
@@ -968,10 +968,10 @@ template <typename T, std::size_t N>
 struct tests_swap : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
-  using tests<T, N>::member;
+  using tests<T, N>::make_test;
 
   static void run() {
-    member("swap(const vector&)") = []() {
+    make_test("swap(const vector&)") = []() {
       if constexpr (N == 0 || sh::copy_constructible<T>) {
         vector vec1{};
         vec1.emplace_back(0);
@@ -990,6 +990,29 @@ struct tests_swap : tests<T, N> {
         expect(eq(vec1, vec2));
         expect(eq(vec3, vec4));
       }
+    };
+  }
+};
+
+template <typename T, std::size_t N>
+struct tests_typenames : tests<T, N> {
+  using typename tests<T, N>::vector;
+  using tests<T, N>::make_test;
+
+  static void run() {
+    make_test("typenames") = []() {
+      expect(std::is_same_v<typename vector::value_type, T>);
+      expect(std::is_same_v<typename vector::size_type, std::size_t>);
+      expect(std::is_same_v<typename vector::difference_type, std::make_signed_t<std::size_t>>);
+      expect(std::is_same_v<typename vector::reference, T&>);
+      expect(std::is_same_v<typename vector::const_reference, const T&>);
+      expect(std::is_same_v<typename vector::pointer, T*>);
+      expect(std::is_same_v<typename vector::const_pointer, const T*>);
+      expect(std::is_same_v<typename vector::iterator, T*>);
+      expect(std::is_same_v<typename vector::const_iterator, const T*>);
+      expect(std::is_same_v<typename vector::reverse_iterator, std::reverse_iterator<T*>>);
+      expect(
+          std::is_same_v<typename vector::const_reverse_iterator, std::reverse_iterator<const T*>>);
     };
   }
 };
@@ -1029,4 +1052,5 @@ void tests_vector() {
   run<tests_push_back>();
   run<tests_pop_back>();
   run<tests_swap>();
+  run<tests_typenames>();
 }

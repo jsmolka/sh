@@ -18,13 +18,13 @@ class vector_base {
  public:
   using value_type = T;
   using size_type = std::size_t;
-  using difference_type = std::ptrdiff_t;
+  using difference_type = std::make_signed_t<size_type>;
   using reference = value_type&;
-  using const_reference = const reference;
+  using const_reference = const value_type&;
   using pointer = value_type*;
-  using const_pointer = const pointer;
+  using const_pointer = const value_type*;
   using iterator = pointer;
-  using const_iterator = const iterator;
+  using const_iterator = const_pointer;
   using reverse_iterator = std::reverse_iterator<iterator>;
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
@@ -117,27 +117,27 @@ class vector_base {
   }
 
   [[nodiscard]] auto rbegin() -> reverse_iterator {
-    return std::make_reverse_iterator(end());
+    return reverse_iterator(end());
   }
 
   [[nodiscard]] auto rend() -> reverse_iterator {
-    return std::make_reverse_iterator(begin());
+    return reverse_iterator(begin());
   }
 
-  [[nodiscard]] auto rbegin() const /* -> const_reverse_iterator */ {
-    return std::make_reverse_iterator(end());
+  [[nodiscard]] auto rbegin() const -> const_reverse_iterator {
+    return const_reverse_iterator(end());
   }
 
-  [[nodiscard]] auto rend() const /* -> const_reverse_iterator */ {
-    return std::make_reverse_iterator(begin());
+  [[nodiscard]] auto rend() const -> const_reverse_iterator {
+    return const_reverse_iterator(begin());
   }
 
-  [[nodiscard]] auto crbegin() const /* -> const_reverse_iterator */ {
-    return std::make_reverse_iterator(cend());
+  [[nodiscard]] auto crbegin() const -> const_reverse_iterator {
+    return const_reverse_iterator(cend());
   }
 
-  [[nodiscard]] auto crend() const /* -> const_reverse_iterator */ {
-    return std::make_reverse_iterator(cbegin());
+  [[nodiscard]] auto crend() const -> const_reverse_iterator {
+    return const_reverse_iterator(cbegin());
   }
 
   [[nodiscard]] auto empty() const -> bool {
@@ -204,7 +204,7 @@ class vector_base {
       -> iterator requires std::move_constructible<value_type> && sh::move_assignable<value_type> &&
       sh::copy_constructible<value_type> {
     if (count == 0) [[unlikely]] {
-      return pos;
+      return const_cast<iterator>(pos);
     }
 
     const auto distance = std::distance(cbegin(), pos);
@@ -232,7 +232,7 @@ class vector_base {
       -> iterator requires std::move_constructible<value_type> && sh::move_assignable<value_type> &&
       sh::copy_constructible<value_type> {
     if (first == last) [[unlikely]] {
-      return pos;
+      return const_cast<iterator>(pos);
     }
 
     const auto count = std::distance(first, last);
@@ -264,19 +264,21 @@ class vector_base {
   }
 
   auto erase(const_iterator pos) -> iterator requires sh::move_assignable<value_type> {
-    std::move(pos + 1, end(), pos);
+    const auto where = const_cast<iterator>(pos);
+    std::move(where + 1, end(), where);
     std::destroy_at(--head_);
-    return pos;
+    return where;
   }
 
   auto erase(const_iterator pos, size_type count)
       -> iterator requires sh::move_assignable<value_type> {
+    const auto where = const_cast<iterator>(pos);
     if (count) {
-      std::move(pos + count, end(), pos);
+      std::move(where + count, end(), where);
       std::destroy(end() - count, end());
       head_ -= count;
     }
-    return pos;
+    return where;
   }
 
   auto erase(const_iterator first, const_iterator last)
