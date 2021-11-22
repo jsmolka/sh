@@ -1,12 +1,11 @@
 #include "tests_vector.h"
 
-#include <compare>
-#include <memory>
-
 #include <sh/vector.h>
 
 #include "types.h"
 #include "ut.h"
+
+namespace {
 
 template <typename T, std::size_t kSize>
 auto operator<<(std::ostream& out, const sh::vector<T, kSize>& vec) -> std::ostream& {
@@ -964,6 +963,8 @@ void run() {
   run<Test, test_type3>();
   run<Test, test_type4>();
 }
+
+}  // namespace
 
 void tests_vector() {
   run<tests_constructor>();
