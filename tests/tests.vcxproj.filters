@@ -32,5 +32,8 @@
     <ClInclude Include="src\ut.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
