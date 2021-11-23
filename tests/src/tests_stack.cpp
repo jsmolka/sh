@@ -57,6 +57,111 @@ struct tests_accessors : tests<T, N> {
   }
 };
 
+template <typename T, std::size_t N>
+struct tests_push : tests<T, N> {
+  using typename tests<T, N>::stack;
+  using tests<T, N>::test;
+
+  static void run() {
+    test("push(const value_type&)") = []() {
+      if constexpr (sh::copy_constructible<T>) {
+        T v1{0};
+        T v2{1};
+        T v3{2};
+
+        stack stk1{};
+        stk1.push(v1);
+        stk1.push(v2);
+        stk1.push(v3);
+        expect(eq(stk1, stack{0, 1, 2}));
+      }
+    };
+
+    test("push(value_type&&)") = []() {
+      if constexpr (sh::move_constructible<T>) {
+        T v1{0};
+        T v2{1};
+        T v3{2};
+
+        stack stk1{};
+        stk1.push(std::move(v1));
+        stk1.push(std::move(v2));
+        stk1.push(std::move(v3));
+        expect(eq(stk1[0], 0));
+        expect(eq(stk1[1], 1));
+        expect(eq(stk1[2], 2));
+      }
+    };
+  }
+};
+
+template <typename T, std::size_t N>
+struct tests_emplace : tests<T, N> {
+  using typename tests<T, N>::stack;
+  using tests<T, N>::test;
+
+  static void run() {
+    test("emplace(Args&&)") = []() {
+      stack stk1{};
+      stk1.emplace(0);
+      stk1.emplace(1);
+      stk1.emplace(2);
+      expect(eq(stk1[0], 0));
+      expect(eq(stk1[1], 1));
+      expect(eq(stk1[2], 2));
+    };
+  }
+};
+
+template <typename T, std::size_t N>
+struct tests_pop : tests<T, N> {
+  using typename tests<T, N>::stack;
+  using tests<T, N>::test;
+
+  static void run() {
+    test("pop()") = []() {
+      stack stk1{};
+      stk1.emplace(0);
+      stk1.emplace(1);
+      expect(eq(stk1.size(), 2));
+      stk1.pop();
+      expect(eq(stk1.size(), 1));
+      stk1.pop();
+      expect(eq(stk1.size(), 0));
+    };
+
+    test("pop(size_type)") = []() {
+      stack stk1{};
+      stk1.emplace(0);
+      stk1.emplace(1);
+      stk1.emplace(2);
+      expect(eq(stk1.size(), 3));
+      stk1.pop(2);
+      expect(eq(stk1.size(), 1));
+      stk1.pop(1);
+      expect(eq(stk1.size(), 0));
+    };
+  }
+};
+
+template <typename T, std::size_t N>
+struct tests_pop_value : tests<T, N> {
+  using typename tests<T, N>::stack;
+  using tests<T, N>::test;
+
+  static void run() {
+    test("pop_value()") = []() {
+      if constexpr (sh::move_constructible<T>) {
+        stack stk1{};
+        stk1.emplace(0);
+        stk1.emplace(1);
+        expect(eq(stk1.pop_value(), 1));
+        expect(eq(stk1.pop_value(), 0));
+      }
+    };
+  }
+};
+
 template <template <typename, std::size_t> typename Test, typename T>
 void run() {
   Test<T, 0>::run();
@@ -79,4 +184,8 @@ void run() {
 
 void tests_stack() {
   run<tests_accessors>();
+  run<tests_push>();
+  run<tests_emplace>();
+  run<tests_pop>();
+  run<tests_pop_value>();
 }

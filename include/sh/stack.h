@@ -42,6 +42,7 @@ class stack : private sh::vector<T, kSize> {
   using base::reserve;
   using base::shrink_to_fit;
   using base::clear;
+  using base::swap;
 
   [[nodiscard]] auto top() -> reference {
     assert(!empty());
@@ -71,7 +72,11 @@ class stack : private sh::vector<T, kSize> {
     this->push_back(std::forward<value_type>(value));
   }
 
-  // Todo: emplace
+  template <typename... Args>
+    requires std::constructible_from<value_type, Args...>
+  void emplace(Args&&... args) {
+    this->emplace_back(std::forward<Args>(args)...);
+  }
 
   void pop() {
     assert(!empty());
@@ -83,13 +88,27 @@ class stack : private sh::vector<T, kSize> {
     this->pop_back(count);
   }
 
-  auto pop_value() -> value_type requires sh::move_constructible<value_type> ||
-      sh::copy_constructible<value_type> {
+  auto pop_value() -> value_type requires sh::move_constructible<value_type> {
     assert(!empty());
     auto value{std::move(this->back())};
     pop();
     return value;
   }
 };
+
+template <typename T, std::size_t kSize>
+void swap(stack<T, kSize>& a, stack<T, kSize>& b) {
+  a.swap(b);
+}
+
+template <typename T, std::size_t kSizeA, std::size_t kSizeB>
+auto operator==(const stack<T, kSizeA>& a, const stack<T, kSizeB>& b) -> bool {
+  return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin());
+}
+
+template <typename T, std::size_t kSizeA, std::size_t kSizeB>
+auto operator!=(const stack<T, kSizeA>& a, const stack<T, kSizeB>& b) -> bool {
+  return !(a == b);
+}
 
 }  // namespace sh
