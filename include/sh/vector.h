@@ -43,9 +43,9 @@ class vector_base {
   template <std::random_access_iterator I>
     requires std::constructible_from<value_type, std::iter_reference_t<I>>
   void assign(I first, I last) {
-    std::destroy(begin(), end());
     const auto distance = std::distance(first, last);
     assert(distance >= 0);
+    std::destroy(begin(), end());
     uninitialized_reserve(static_cast<size_type>(distance));
     head_ = std::uninitialized_copy(first, last, begin());
   }
@@ -154,18 +154,18 @@ class vector_base {
 
   void reserve(size_type capacity) {
     if (capacity > this->capacity()) {
-      static_cast<Derived*>(this)->reallocate(capacity);
+      derived()->reallocate(capacity);
     }
   }
 
   void shrink_to_fit() {
-    if (static_cast<Derived*>(this)->is_heap_allocated()) {
-      static_cast<Derived*>(this)->reallocate(size());
+    if (derived()->heap_allocated()) {
+      derived()->reallocate(size());
     }
   }
 
   void clear() {
-    destroy();
+    std::destroy(begin(), end());
     head_ = data_;
   }
 
@@ -173,7 +173,7 @@ class vector_base {
     requires sh::move_constructible<value_type> && sh::move_assignable<value_type> &&
         std::constructible_from<value_type, Args...>
   auto emplace(const_iterator pos, Args&&... args) -> iterator {
-    pointer where;
+    iterator where;
     if (pos == end()) {
       grow_to_fit();
       where = end();
@@ -323,6 +323,38 @@ class vector_base {
  protected:
   using storage = std::aligned_storage_t<sizeof(value_type), alignof(value_type)>;
 
+  void uninitialized_reserve(size_type capacity) {
+    if (capacity > this->capacity()) {
+      if (static_cast<Derived*>(this)->heap_allocated()) {
+        static_cast<Derived*>(this)->deallocate();
+      }
+      data_ = reinterpret_cast<pointer>(new storage[capacity]);
+      head_ = data_;
+      last_ = data_ + capacity;
+    }
+  }
+
+  void grow_to_fit() {
+    if (head_ == last_) [[unlikely]] {
+      derived()->reallocate(data_ ? (3 * capacity() + 1) / 2 : 1);
+    }
+  }
+
+  void grow_to_fit(size_type count) {
+    if (head_ + count > last_) {
+      derived()->reallocate(capacity() + count);
+    }
+  }
+
+  pointer head_{};
+  pointer data_{};
+  pointer last_{};
+
+ private:
+  Derived* derived() {
+    return static_cast<Derived*>(this);
+  }
+
   template <typename... Args>
     requires std::constructible_from<value_type, Args...>
   void do_resize(size_type size, Args&&... args) {
@@ -340,37 +372,6 @@ class vector_base {
     }
     head_ = begin() + size;
   }
-
-  void uninitialized_reserve(size_type capacity) {
-    if (capacity > this->capacity()) {
-      if (static_cast<Derived*>(this)->is_heap_allocated()) {
-        static_cast<Derived*>(this)->deallocate();
-      }
-      data_ = reinterpret_cast<pointer>(new storage[capacity]);
-      head_ = data_;
-      last_ = data_ + capacity;
-    }
-  }
-
-  void grow_to_fit() {
-    if (head_ == last_) [[unlikely]] {
-      static_cast<Derived*>(this)->reallocate(data_ ? (3 * capacity() + 1) / 2 : 1);
-    }
-  }
-
-  void grow_to_fit(size_type count) {
-    if (head_ + count > last_) {
-      static_cast<Derived*>(this)->reallocate(capacity() + count);
-    }
-  }
-
-  void destroy() {
-    std::destroy(begin(), end());
-  }
-
-  pointer head_{};
-  pointer data_{};
-  pointer last_{};
 };
 
 }  // namespace detail
@@ -494,7 +495,7 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
  private:
   using typename base::storage;
 
-  bool is_heap_allocated() {
+  bool heap_allocated() {
     return data_ && data_ != reinterpret_cast<const_pointer>(stack_);
   }
 
@@ -688,7 +689,7 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
  private:
   using typename base::storage;
 
-  bool is_heap_allocated() const {
+  bool heap_allocated() const {
     return data_;
   }
 
