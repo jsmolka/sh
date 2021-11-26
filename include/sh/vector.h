@@ -609,24 +609,24 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
   vector() noexcept = default;
 
   vector(size_type count, const value_type& value) requires sh::copy_constructible<value_type> {
-    this->construct(count, value);
+    construct(count, value);
   }
 
   explicit vector(size_type count) requires sh::value_constructible<T> {
-    this->construct(count);
+    construct(count);
   }
 
   template <std::random_access_iterator I>
     requires(std::constructible_from<value_type, std::iter_reference_t<I>>)
   vector(I first, I last) {
-    this->construct(first, last);
+    construct(first, last);
   }
 
   vector(const vector& other) requires sh::copy_constructible<value_type>
       : vector(other.begin(), other.end()) {}
 
   vector(vector&& other) noexcept : base(other.data_, other.head_, other.last_) {
-    other.data_ = nullptr;
+    other.reset();
   }
 
   vector(std::initializer_list<value_type> init) requires sh::copy_constructible<value_type>
@@ -647,11 +647,11 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
 
   auto operator=(vector&& other) -> vector& {
     if (this != &other) [[likely]] {
-      this->~vector();
+      destruct();
       data_ = other.data_;
       head_ = other.head_;
       last_ = other.last_;
-      other.data_ = nullptr;
+      other.reset();
     }
     return *this;
   }
@@ -693,14 +693,23 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
  private:
   using typename base::storage;
 
-  bool heap_allocated() const {
+  using base::construct;
+  using base::deallocate;
+
+  auto heap_allocated() const -> bool {
     return data_;
   }
 
+  void reset() {
+    data_ = nullptr;
+    head_ = nullptr;
+    last_ = nullptr;
+  }
+
   void destruct() {
-    if (data_) {
-      std::destroy(begin(), end());
-      this->deallocate();
+    std::destroy(begin(), end());
+    if (heap_allocated()) {
+      deallocate();
     }
   }
 
