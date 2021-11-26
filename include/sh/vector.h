@@ -14,6 +14,7 @@ namespace sh {
 namespace detail {
 
 template <typename T, typename Derived>
+  requires sh::move_constructible<T> || sh::copy_constructible<T>
 class vector_base {
  public:
   using value_type = T;
@@ -173,6 +174,7 @@ class vector_base {
     requires sh::move_constructible<value_type> && sh::move_assignable<value_type> &&
         std::constructible_from<value_type, Args...>
   auto emplace(const_iterator pos, Args&&... args) -> iterator {
+    assert(pos >= begin() && pos <= end());
     iterator where;
     if (pos == end()) {
       grow_to_fit();
@@ -203,6 +205,7 @@ class vector_base {
   auto insert(const_iterator pos, size_type count, const value_type& value)
       -> iterator requires std::move_constructible<value_type> && sh::move_assignable<value_type> &&
       sh::copy_constructible<value_type> {
+    assert(pos >= begin() && pos <= end());
     if (count == 0) [[unlikely]] {
       return const_cast<iterator>(pos);
     }
@@ -231,11 +234,13 @@ class vector_base {
   auto insert(const_iterator pos, I first, I last)
       -> iterator requires std::move_constructible<value_type> && sh::move_assignable<value_type> &&
       sh::copy_constructible<value_type> {
+    assert(pos >= begin() && pos <= end());
     if (first == last) [[unlikely]] {
       return const_cast<iterator>(pos);
     }
 
     const auto count = std::distance(first, last);
+    assert(count >= 0);
     const auto distance = std::distance(cbegin(), pos);
     grow_to_fit(count);
     const auto where = begin() + distance;
@@ -264,6 +269,7 @@ class vector_base {
   }
 
   auto erase(const_iterator pos) -> iterator requires sh::move_assignable<value_type> {
+    assert(pos >= begin() && pos < end());
     const auto where = const_cast<iterator>(pos);
     std::move(where + 1, end(), where);
     std::destroy_at(--head_);
@@ -273,7 +279,9 @@ class vector_base {
   auto erase(const_iterator pos, size_type count)
       -> iterator requires sh::move_assignable<value_type> {
     const auto where = const_cast<iterator>(pos);
-    if (count) {
+    if (count) [[likely]] {
+      assert(pos >= begin() && pos < end());
+      assert(pos + count <= end());
       std::move(where + count, end(), where);
       std::destroy(end() - count, end());
       head_ -= count;
@@ -283,7 +291,11 @@ class vector_base {
 
   auto erase(const_iterator first, const_iterator last)
       -> iterator requires sh::move_assignable<value_type> {
-    return erase(first, std::distance(first, last));
+    assert(first >= begin() && first <= end());
+    assert(last >= begin() && last <= end());
+    assert(first <= last);
+    const auto distance = std::distance(first, last);
+    return erase(first, static_cast<size_type>(distance));
   }
 
   void resize(size_type size, const value_type& value) requires sh::copy_constructible<value_type> {
@@ -325,8 +337,8 @@ class vector_base {
 
   void uninitialized_reserve(size_type capacity) {
     if (capacity > this->capacity()) {
-      if (static_cast<Derived*>(this)->heap_allocated()) {
-        static_cast<Derived*>(this)->deallocate();
+      if (derived()->heap_allocated()) {
+        derived()->deallocate();
       }
       data_ = reinterpret_cast<pointer>(new storage[capacity]);
       head_ = data_;
@@ -360,7 +372,7 @@ class vector_base {
   void do_resize(size_type size, Args&&... args) {
     if (size > this->size()) {
       if (size > capacity()) {
-        static_cast<Derived*>(this)->reallocate(size);
+        derived()->reallocate(size);
       }
       if constexpr (sizeof...(Args) == 0) {
         std::uninitialized_value_construct(end(), begin() + size);
@@ -396,9 +408,7 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
   using typename base::reverse_iterator;
   using typename base::const_reverse_iterator;
 
-  vector() noexcept
-      : base(reinterpret_cast<pointer>(stack_), reinterpret_cast<pointer>(stack_),
-             reinterpret_cast<pointer>(stack_) + kSize) {}
+  vector() noexcept : base(stack(), stack(), stack() + kSize) {}
 
   vector(size_type count, const value_type& value) requires sh::copy_constructible<value_type>
       : vector() {
@@ -450,16 +460,15 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
   auto operator=(vector&& other) -> vector& {
     if (this != &other) [[likely]] {
       destruct();
-      head_ = reinterpret_cast<pointer>(stack_);
-      data_ = reinterpret_cast<pointer>(stack_);
-      last_ = reinterpret_cast<pointer>(stack_) + kSize;
+      head_ = stack();
+      data_ = stack();
+      last_ = stack() + kSize;
       move(std::forward<vector>(other));
     }
     return *this;
   }
 
   void swap(vector& other) {
-    using std::swap;
     vector temp(std::move(other));
     other = std::move(*this);
     *this = std::move(temp);
@@ -495,21 +504,16 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
  private:
   using typename base::storage;
 
-  bool heap_allocated() {
-    return data_ && data_ != reinterpret_cast<const_pointer>(stack_);
+  auto stack() -> pointer {
+    return reinterpret_cast<pointer>(stack_);
   }
 
-  void destruct() {
-    if (data_ == reinterpret_cast<pointer>(stack_)) {
-      std::destroy(begin(), end());
-    } else if (data_) {
-      std::destroy(begin(), end());
-      deallocate();
-    }
+  auto stack() const -> const_pointer {
+    return reinterpret_cast<const_pointer>(stack_);
   }
 
   void move(vector&& other) {
-    if (other.data_ == reinterpret_cast<pointer>(other.stack_)) {
+    if (other.data_ == stack()) {
       if constexpr (sh::move_constructible<value_type>) {
         head_ = std::uninitialized_move(other.begin(), other.end(), head_);
       } else {
@@ -524,6 +528,19 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
     other.data_ = nullptr;
   }
 
+  bool heap_allocated() const {
+    return data_ && data_ != stack();
+  }
+
+  void destruct() {
+    if (data_ == stack()) {
+      std::destroy(begin(), end());
+    } else if (data_) {
+      std::destroy(begin(), end());
+      deallocate();
+    }
+  }
+
   void allocate(size_type capacity) {
     if (capacity > kSize) {
       data_ = reinterpret_cast<pointer>(new storage[capacity]);
@@ -533,7 +550,7 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
   }
 
   void deallocate() {
-    assert(data_ && data_ != reinterpret_cast<pointer>(stack_));
+    assert(data_ && data_ != stack());
     delete[] reinterpret_cast<storage*>(data_);
   }
 
@@ -550,7 +567,7 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
         head_new = std::uninitialized_copy(begin(), end(), data_new);
       }
       std::destroy(begin(), end());
-      if (data_ != reinterpret_cast<pointer>(stack_)) {
+      if (data_ != stack()) {
         deallocate();
       }
     } catch (...) {
@@ -622,10 +639,7 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
       : vector(init.begin(), init.end()) {}
 
   ~vector() {
-    if (data_) {
-      std::destroy(begin(), end());
-      deallocate();
-    }
+    destruct();
   }
 
   auto operator=(std::initializer_list<value_type> init)
@@ -691,6 +705,13 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
 
   bool heap_allocated() const {
     return data_;
+  }
+
+  void destruct() {
+    if (heap_allocated()) {
+      std::destroy(begin(), end());
+      deallocate();
+    }
   }
 
   void allocate(size_type capacity) {

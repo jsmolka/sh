@@ -727,7 +727,7 @@ struct tests_erase : tests<T, N> {
         vec2.emplace_back(0);
         vec2.emplace_back(1);
         vec2.emplace_back(2);
-        pos = vec3.erase(vec3.begin(), vec3.begin());
+        pos = vec3.erase(vec3.begin(), vec3.end());
         expect(eq(pos, vec3.begin()));
         expect(eq(vec3.size(), 0));
       }
