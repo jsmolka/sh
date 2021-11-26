@@ -372,6 +372,33 @@ class vector_base {
     }
     head_ = begin() + size;
   }
+
+  void reallocate(size_type capacity) {
+    assert(capacity > 0);
+
+    pointer data_new = reinterpret_cast<pointer>(new storage[capacity]);
+    pointer head_new;
+
+    if (data_) {
+      try {
+        if constexpr (sh::move_constructible<value_type>) {
+          head_new = std::uninitialized_move(begin(), end(), data_new);
+        } else {
+          head_new = std::uninitialized_copy(begin(), end(), data_new);
+        }
+        derived()->destruct();
+      } catch (...) {
+        delete[] reinterpret_cast<storage*>(data_new);
+        throw;
+      }
+    } else {
+      head_new = data_new;
+    }
+
+    data_ = data_new;
+    head_ = head_new;
+    last_ = data_ + capacity;
+  }
 };
 
 }  // namespace detail
@@ -537,32 +564,6 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
     delete[] reinterpret_cast<storage*>(data_);
   }
 
-  void reallocate(size_type capacity) {
-    assert(capacity > 0);
-
-    pointer data_new = reinterpret_cast<pointer>(new storage[capacity]);
-    pointer head_new;
-
-    try {
-      if constexpr (sh::move_constructible<value_type>) {
-        head_new = std::uninitialized_move(begin(), end(), data_new);
-      } else {
-        head_new = std::uninitialized_copy(begin(), end(), data_new);
-      }
-      std::destroy(begin(), end());
-      if (data_ != reinterpret_cast<pointer>(stack_)) {
-        deallocate();
-      }
-    } catch (...) {
-      delete[] reinterpret_cast<storage*>(data_new);
-      throw;
-    }
-
-    data_ = data_new;
-    head_ = head_new;
-    last_ = data_ + capacity;
-  }
-
   using base::data_;
   using base::head_;
   using base::last_;
@@ -622,10 +623,7 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
       : vector(init.begin(), init.end()) {}
 
   ~vector() {
-    if (data_) {
-      std::destroy(begin(), end());
-      deallocate();
-    }
+    destruct();
   }
 
   auto operator=(std::initializer_list<value_type> init)
@@ -693,6 +691,13 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
     return data_;
   }
 
+  void destruct() {
+    if (data_) {
+      std::destroy(begin(), end());
+      deallocate();
+    }
+  }
+
   void allocate(size_type capacity) {
     data_ = capacity ? reinterpret_cast<pointer>(new storage[capacity]) : nullptr;
     head_ = data_;
@@ -702,34 +707,6 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
   void deallocate() {
     assert(data_);
     delete[] reinterpret_cast<storage*>(data_);
-  }
-
-  void reallocate(size_type capacity) {
-    assert(capacity > 0);
-
-    pointer data_new = reinterpret_cast<pointer>(new storage[capacity]);
-    pointer head_new;
-
-    if (data_) {
-      try {
-        if constexpr (sh::move_constructible<value_type>) {
-          head_new = std::uninitialized_move(begin(), end(), data_new);
-        } else {
-          head_new = std::uninitialized_copy(begin(), end(), data_new);
-        }
-        std::destroy(begin(), end());
-        deallocate();
-      } catch (...) {
-        delete[] reinterpret_cast<storage*>(data_new);
-        throw;
-      }
-    } else {
-      head_new = data_new;
-    }
-
-    data_ = data_new;
-    head_ = head_new;
-    last_ = data_ + capacity;
   }
 
   using base::data_;
