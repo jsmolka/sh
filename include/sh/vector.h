@@ -323,6 +323,26 @@ class vector_base {
  protected:
   using storage = std::aligned_storage_t<sizeof(value_type), alignof(value_type)>;
 
+  void construct(size_type count,
+                 const value_type& value) requires sh::copy_constructible<value_type> {
+    allocate(count);
+    head_ = std::uninitialized_fill_n(begin(), count, value);
+  }
+
+  void construct(size_type count) requires sh::value_constructible<T> {
+    allocate(count);
+    head_ = std::uninitialized_value_construct_n(begin(), count);
+  }
+
+  template <std::random_access_iterator I>
+    requires(std::constructible_from<value_type, std::iter_reference_t<I>>)
+  void construct(I first, I last) {
+    const auto distance = std::distance(first, last);
+    assert(distance >= 0);
+    allocate(static_cast<size_type>(distance));
+    head_ = std::uninitialized_copy(first, last, begin());
+  }
+
   void uninitialized_reserve(size_type capacity) {
     if (capacity > this->capacity()) {
       if (static_cast<Derived*>(this)->heap_allocated()) {
@@ -437,22 +457,17 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
 
   vector(size_type count, const value_type& value) requires sh::copy_constructible<value_type>
       : vector() {
-    this->allocate(count);
-    head_ = std::uninitialized_fill_n(begin(), count, value);
+    this->construct(count, value);
   }
 
   explicit vector(size_type count) requires sh::value_constructible<T> : vector() {
-    this->allocate(count);
-    head_ = std::uninitialized_value_construct_n(begin(), count);
+    this->construct(count);
   }
 
   template <std::random_access_iterator I>
     requires(std::constructible_from<value_type, std::iter_reference_t<I>>)
   vector(I first, I last) : vector() {
-    const auto distance = std::distance(first, last);
-    assert(distance >= 0);
-    this->allocate(static_cast<size_type>(distance));
-    head_ = std::uninitialized_copy(first, last, begin());
+    this->construct(first, last);
   }
 
   vector(const vector& other) requires sh::copy_constructible<value_type>
@@ -594,22 +609,17 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
   vector() noexcept = default;
 
   vector(size_type count, const value_type& value) requires sh::copy_constructible<value_type> {
-    this->allocate(count);
-    head_ = std::uninitialized_fill_n(begin(), count, value);
+    this->construct(count, value);
   }
 
   explicit vector(size_type count) requires sh::value_constructible<T> {
-    this->allocate(count);
-    head_ = std::uninitialized_value_construct_n(begin(), count);
+    this->construct(count);
   }
 
   template <std::random_access_iterator I>
     requires(std::constructible_from<value_type, std::iter_reference_t<I>>)
   vector(I first, I last) {
-    const auto distance = std::distance(first, last);
-    assert(distance >= 0);
-    this->allocate(static_cast<size_type>(distance));
-    head_ = std::uninitialized_copy(first, last, begin());
+    this->construct(first, last);
   }
 
   vector(const vector& other) requires sh::copy_constructible<value_type>
