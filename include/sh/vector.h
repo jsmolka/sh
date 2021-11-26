@@ -33,6 +33,10 @@ class vector_base {
   vector_base(pointer data, pointer head, pointer last) noexcept
       : data_(data), head_(head), last_(last) {}
 
+  ~vector_base() {
+    derived()->destruct();
+  }
+
   void assign(size_type count,
               const value_type& value) requires sh::copy_constructible<value_type> {
     std::destroy(begin(), end());
@@ -346,7 +350,7 @@ class vector_base {
   void uninitialized_reserve(size_type capacity) {
     if (capacity > this->capacity()) {
       if (static_cast<Derived*>(this)->heap_allocated()) {
-        static_cast<Derived*>(this)->deallocate();
+        deallocate();
       }
       data_ = reinterpret_cast<pointer>(new storage[capacity]);
       head_ = data_;
@@ -399,6 +403,11 @@ class vector_base {
     data_ = data_new;
     head_ = head_new;
     last_ = data_ + capacity;
+  }
+
+  void deallocate() {
+    assert(data_);
+    delete[] reinterpret_cast<storage*>(data_);
   }
 
   pointer head_{};
@@ -480,10 +489,6 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
   vector(std::initializer_list<value_type> init) requires sh::copy_constructible<value_type>
       : vector(init.begin(), init.end()) {}
 
-  ~vector() {
-    destruct();
-  }
-
   auto operator=(std::initializer_list<value_type> init)
       -> vector& requires sh::copy_constructible<value_type> {
     assign(init.begin(), init.end());
@@ -554,7 +559,7 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
       std::destroy(begin(), end());
     } else if (data_) {
       std::destroy(begin(), end());
-      deallocate();
+      this->deallocate();
     }
   }
 
@@ -572,11 +577,6 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
       last_ = other.last_;
     }
     other.data_ = nullptr;
-  }
-
-  void deallocate() {
-    assert(data_ && data_ != reinterpret_cast<pointer>(stack_));
-    delete[] reinterpret_cast<storage*>(data_);
   }
 
   using base::data_;
@@ -631,10 +631,6 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
 
   vector(std::initializer_list<value_type> init) requires sh::copy_constructible<value_type>
       : vector(init.begin(), init.end()) {}
-
-  ~vector() {
-    destruct();
-  }
 
   auto operator=(std::initializer_list<value_type> init)
       -> vector& requires sh::copy_constructible<value_type> {
@@ -704,13 +700,8 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
   void destruct() {
     if (data_) {
       std::destroy(begin(), end());
-      deallocate();
+      this->deallocate();
     }
-  }
-
-  void deallocate() {
-    assert(data_);
-    delete[] reinterpret_cast<storage*>(data_);
   }
 
   using base::data_;
