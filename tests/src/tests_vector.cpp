@@ -126,7 +126,11 @@ struct tests_constructor : public tests<T, N> {
       const auto c = vec1.capacity();
 
       vector vec2(std::move(vec1));
-      expect(eq(vec1.data(), nullptr));
+      if constexpr (N == 0) {
+        expect(eq(vec1.data(), nullptr));
+      } else {
+        expect(neq(vec1.data(), nullptr));
+      }
       expect(eq(vec2.size(), 3));
       expect(eq(vec2[0], 0));
       expect(eq(vec2[1], 1));
@@ -275,7 +279,11 @@ struct tests_assignment_operator : tests<T, N> {
 
       vector vec2{};
       vec2 = std::move(vec1);
-      expect(eq(vec1.data(), nullptr));
+      if constexpr (N == 0) {
+        expect(eq(vec1.data(), nullptr));
+      } else {
+        expect(neq(vec1.data(), nullptr));
+      }
       expect(eq(vec2.size(), 3));
       expect(eq(vec2[0], 0));
       expect(eq(vec2[1], 1));
@@ -292,7 +300,11 @@ struct tests_assignment_operator : tests<T, N> {
       vec3.emplace_back(3);
       vec3.emplace_back(3);
       vec3 = std::move(vec2);
-      expect(eq(vec2.data(), nullptr));
+      if constexpr (N == 0) {
+        expect(eq(vec2.data(), nullptr));
+      } else {
+        expect(neq(vec2.data(), nullptr));
+      }
       expect(eq(vec3.size(), 3));
       expect(eq(vec3[0], 0));
       expect(eq(vec3[1], 1));
