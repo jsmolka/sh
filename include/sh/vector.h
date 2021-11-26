@@ -346,31 +346,12 @@ class vector_base {
     }
   }
 
-  pointer head_{};
-  pointer data_{};
-  pointer last_{};
-
- private:
-  Derived* derived() {
-    return static_cast<Derived*>(this);
-  }
-
-  template <typename... Args>
-    requires std::constructible_from<value_type, Args...>
-  void do_resize(size_type size, Args&&... args) {
-    if (size > this->size()) {
-      if (size > capacity()) {
-        static_cast<Derived*>(this)->reallocate(size);
-      }
-      if constexpr (sizeof...(Args) == 0) {
-        std::uninitialized_value_construct(end(), begin() + size);
-      } else {
-        std::uninitialized_fill(end(), begin() + size, std::forward<Args>(args)...);
-      }
-    } else if (size < this->size()) {
-      std::destroy(begin() + size, end());
+  void allocate(size_type capacity) {
+    if (capacity > this->capacity()) {
+      data_ = reinterpret_cast<pointer>(new storage[capacity]);
+      head_ = data_;
+      last_ = data_ + capacity;
     }
-    head_ = begin() + size;
   }
 
   void reallocate(size_type capacity) {
@@ -398,6 +379,33 @@ class vector_base {
     data_ = data_new;
     head_ = head_new;
     last_ = data_ + capacity;
+  }
+
+  pointer head_{};
+  pointer data_{};
+  pointer last_{};
+
+ private:
+  Derived* derived() {
+    return static_cast<Derived*>(this);
+  }
+
+  template <typename... Args>
+    requires std::constructible_from<value_type, Args...>
+  void do_resize(size_type size, Args&&... args) {
+    if (size > this->size()) {
+      if (size > capacity()) {
+        static_cast<Derived*>(this)->reallocate(size);
+      }
+      if constexpr (sizeof...(Args) == 0) {
+        std::uninitialized_value_construct(end(), begin() + size);
+      } else {
+        std::uninitialized_fill(end(), begin() + size, std::forward<Args>(args)...);
+      }
+    } else if (size < this->size()) {
+      std::destroy(begin() + size, end());
+    }
+    head_ = begin() + size;
   }
 };
 
@@ -429,12 +437,12 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
 
   vector(size_type count, const value_type& value) requires sh::copy_constructible<value_type>
       : vector() {
-    allocate(count);
+    this->allocate(count);
     head_ = std::uninitialized_fill_n(begin(), count, value);
   }
 
   explicit vector(size_type count) requires sh::value_constructible<T> : vector() {
-    allocate(count);
+    this->allocate(count);
     head_ = std::uninitialized_value_construct_n(begin(), count);
   }
 
@@ -443,7 +451,7 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
   vector(I first, I last) : vector() {
     const auto distance = std::distance(first, last);
     assert(distance >= 0);
-    allocate(static_cast<size_type>(distance));
+    this->allocate(static_cast<size_type>(distance));
     head_ = std::uninitialized_copy(first, last, begin());
   }
 
@@ -551,14 +559,6 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
     other.data_ = nullptr;
   }
 
-  void allocate(size_type capacity) {
-    if (capacity > kSize) {
-      data_ = reinterpret_cast<pointer>(new storage[capacity]);
-      head_ = data_;
-      last_ = data_ + capacity;
-    }
-  }
-
   void deallocate() {
     assert(data_ && data_ != reinterpret_cast<pointer>(stack_));
     delete[] reinterpret_cast<storage*>(data_);
@@ -594,12 +594,12 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
   vector() noexcept = default;
 
   vector(size_type count, const value_type& value) requires sh::copy_constructible<value_type> {
-    allocate(count);
+    this->allocate(count);
     head_ = std::uninitialized_fill_n(begin(), count, value);
   }
 
   explicit vector(size_type count) requires sh::value_constructible<T> {
-    allocate(count);
+    this->allocate(count);
     head_ = std::uninitialized_value_construct_n(begin(), count);
   }
 
@@ -608,7 +608,7 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
   vector(I first, I last) {
     const auto distance = std::distance(first, last);
     assert(distance >= 0);
-    allocate(static_cast<size_type>(distance));
+    this->allocate(static_cast<size_type>(distance));
     head_ = std::uninitialized_copy(first, last, begin());
   }
 
@@ -696,12 +696,6 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
       std::destroy(begin(), end());
       deallocate();
     }
-  }
-
-  void allocate(size_type capacity) {
-    data_ = capacity ? reinterpret_cast<pointer>(new storage[capacity]) : nullptr;
-    head_ = data_;
-    last_ = data_ + capacity;
   }
 
   void deallocate() {
