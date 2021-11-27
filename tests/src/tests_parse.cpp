@@ -48,6 +48,18 @@ struct tests_integral {
         return fmt::format("{}", value);
       });
     };
+
+    test("binary") = []() {
+      linear([](auto value) {
+        return fmt::format("{:#b}", value);
+      });
+    };
+
+    test("hexadecimal") = []() {
+      linear([](auto value) {
+        return fmt::format("{:#x}", value);
+      });
+    };
   }
 };  // namespace
 
