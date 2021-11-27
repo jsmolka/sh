@@ -1,7 +1,9 @@
+#include "tests_parse.h"
 #include "tests_stack.h"
 #include "tests_vector.h"
 
 int main() {
-  tests_stack();
   tests_vector();
+  tests_stack();
+  tests_parse();
 }
