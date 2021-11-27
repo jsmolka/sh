@@ -54,12 +54,12 @@ class stack : private sh::vector<T, kSize> {
     return this->back();
   }
 
-  auto peek(std::size_t index) -> reference {
+  [[nodiscard]] auto peek(std::size_t index) -> reference {
     assert(index < size());
     return end()[-index - 1];
   }
 
-  auto peek(std::size_t index) const -> const_reference {
+  [[nodiscard]] auto peek(std::size_t index) const -> const_reference {
     assert(index < size());
     return end()[-index - 1];
   }
@@ -90,7 +90,7 @@ class stack : private sh::vector<T, kSize> {
 
   auto pop_value() -> value_type requires sh::move_constructible<value_type> {
     assert(!empty());
-    auto value{std::move(this->back())};
+    auto value{std::move(top())};
     pop();
     return value;
   }
