@@ -14,12 +14,11 @@ namespace sh {
 namespace {
 
 template <typename T, typename... Args>
-std::optional<T> parse_number(std::string_view data, Args&&... args) {
+auto parse_number(std::string_view data, Args&&... args) -> std::optional<T> {
   T value{};
   const auto beg = data.data();
   const auto end = data.data() + data.size();
   const auto& [ptr, ec] = std::from_chars(beg, end, value, std::forward<Args>(args)...);
-
   if (ec == std::errc::result_out_of_range || ptr != end) {
     return std::nullopt;
   }
