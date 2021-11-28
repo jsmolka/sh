@@ -9,10 +9,15 @@
 namespace {
 
 template <typename T>
-struct tests_integral {
+struct tests {
   static auto test(std::string_view what) {
     return ::test("parse<{}>::{}", typeid(T).name(), what);
   }
+};
+
+template <typename T>
+struct tests_integral : tests<T> {
+  using tests<T>::test;
 
   template <typename Format>
   static void linear(Format format) {
@@ -61,7 +66,26 @@ struct tests_integral {
       });
     };
   }
-};  // namespace
+};
+
+template <typename T>
+struct tests_float : tests<T> {
+  using tests<T>::test;
+
+  static void linear() {
+    for (auto expected = static_cast<T>(-100.0); expected < 100.0; expected += 10.1232456789) {
+      const auto value = sh::parse<T>(fmt::format("{:f}", expected));
+      expect(value.has_value());
+      expect(eq(_i(*value), _i(expected)));
+    }
+  }
+
+  static void run() {
+    test("default") = []() {
+      linear();
+    };
+  }
+};
 
 }  // namespace
 
@@ -74,4 +98,6 @@ void tests_parse() {
   tests_integral<s16>::run();
   tests_integral<s32>::run();
   tests_integral<s64>::run();
+  tests_float<float>::run();
+  tests_float<double>::run();
 }

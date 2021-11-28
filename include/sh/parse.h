@@ -5,12 +5,32 @@
 #include <optional>
 #include <string_view>
 
+#include <sh/fast_float/fast_float.h>
+
+namespace std {
+
+using fast_float::from_chars;
+
+}  // namespace std
+
 namespace sh {
 
-template <typename T>
-auto parse(std::string_view data) -> std::optional<T> {
-  return T{};
+namespace {
+
+template <typename T, typename... Args>
+std::optional<T> parse_number(std::string_view data, Args&&... args) {
+  T value{};
+  const auto beg = data.data();
+  const auto end = data.data() + data.size();
+  const auto& [ptr, ec] = std::from_chars(beg, end, value, std::forward<Args>(args)...);
+
+  if (ec == std::errc::result_out_of_range || ptr != end) {
+    return std::nullopt;
+  }
+  return value;
 }
+
+}  // namespace
 
 template <std::integral Integral>
 auto parse(std::string_view data) -> std::optional<Integral> {
@@ -39,19 +59,16 @@ auto parse(std::string_view data) -> std::optional<Integral> {
     }
   }
 
-  Integral value{};
-  const auto beg = data.data();
-  const auto end = data.data() + data.size();
-  const auto& [ptr, ec] = std::from_chars(beg, end, value, base);
-
+  const auto value = parse_number<Integral>(data, base);
   if (base != 10 && negative) {
     std::swap(*sign, *temp);
   }
-
-  if (ec == std::errc::result_out_of_range || ptr != end) {
-    return std::nullopt;
-  }
   return value;
+}
+
+template <std::floating_point Float>
+auto parse(std::string_view data) -> std::optional<Float> {
+  return parse_number<Float>(data);
 }
 
 }  // namespace sh
