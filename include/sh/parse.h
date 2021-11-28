@@ -67,7 +67,7 @@ auto parse(std::string_view data) -> std::optional<Integral> {
 }
 
 template <>
-auto parse(std::string_view data) -> std::optional<bool> {
+inline auto parse(std::string_view data) -> std::optional<bool> {
   if (data == "1" || data == "true") {
     return true;
   } else if (data == "0" || data == "false") {
