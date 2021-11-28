@@ -66,12 +66,9 @@ auto parse(std::string_view data) -> std::optional<Float> {
   return parse_number<Float>(data);
 }
 
-template <typename T>
-  requires requires {
-    { sh::parse<T>(std::string_view{}) } -> std::same_as<std::optional<T>>;
-  }
-auto parse(const std::string& string) -> std::optional<T> {
-  return parse<T>(static_cast<std::string_view>(string));
+template <sh::any_of<std::string, std::string_view> String>
+auto parse(std::string_view data) -> std::optional<String> {
+  return String(data.begin(), data.end());
 }
 
 }  // namespace sh
