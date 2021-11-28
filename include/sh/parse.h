@@ -3,15 +3,11 @@
 #include <charconv>
 #include <concepts>
 #include <optional>
+#include <string>
 #include <string_view>
 
-#include <sh/fast_float/fast_float.h>
-
-namespace std {
-
-using fast_float::from_chars;
-
-}  // namespace std
+#include <sh/concepts.h>
+#include <sh/polyfill.h>
 
 namespace sh {
 
@@ -66,9 +62,17 @@ auto parse(std::string_view data) -> std::optional<Integral> {
   return value;
 }
 
-template <std::floating_point Float>
+template <sh::any_of<float, double> Float>
 auto parse(std::string_view data) -> std::optional<Float> {
   return parse_number<Float>(data);
+}
+
+template <typename T>
+  requires requires {
+    { sh::parse<T>(std::string_view{}) } -> std::same_as<std::optional<T>>;
+  }
+auto parse(const std::string& string) -> std::optional<T> {
+  return parse<T>(static_cast<std::string_view>(string));
 }
 
 }  // namespace sh

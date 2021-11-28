@@ -1,6 +1,7 @@
 #pragma once
 
 #include <concepts>
+#include <type_traits>
 
 namespace sh {
 
@@ -18,5 +19,8 @@ concept move_assignable = std::assignable_from<T&, T&&>;
 
 template <typename T>
 concept value_constructible = std::constructible_from<T>;
+
+template <typename T, typename... Ts>
+concept any_of = std::disjunction_v<std::is_same<T, Ts>...>;
 
 }  // namespace sh
