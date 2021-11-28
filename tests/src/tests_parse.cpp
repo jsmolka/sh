@@ -99,6 +99,14 @@ struct tests_float : tests<T> {
   }
 };
 
+void tests_bool() {
+  expect(eq(*sh::parse<bool>("true"), true));
+  expect(eq(*sh::parse<bool>("1"), true));
+  expect(eq(*sh::parse<bool>("false"), false));
+  expect(eq(*sh::parse<bool>("0"), false));
+  expect(!sh::parse<bool>(" "));
+}
+
 }  // namespace
 
 void tests_parse() {
@@ -112,4 +120,5 @@ void tests_parse() {
   tests_integral<s64>::run();
   tests_float<float>::run();
   tests_float<double>::run();
+  tests_bool();
 }

@@ -27,6 +27,11 @@ auto parse_number(std::string_view data, Args&&... args) -> std::optional<T> {
 
 }  // namespace
 
+template <sh::never T>
+auto parse(std::string_view data) -> std::optional<T> {
+  return std::nullopt;
+}
+
 template <std::integral Integral>
 auto parse(std::string_view data) -> std::optional<Integral> {
   const auto negative = data.starts_with('-');
@@ -59,6 +64,17 @@ auto parse(std::string_view data) -> std::optional<Integral> {
     std::swap(*sign, *temp);
   }
   return value;
+}
+
+template <>
+auto parse(std::string_view data) -> std::optional<bool> {
+  if (data == "1" || data == "true") {
+    return true;
+  } else if (data == "0" || data == "false") {
+    return false;
+  } else {
+    return std::nullopt;
+  }
 }
 
 template <sh::any_of<float, double> Float>

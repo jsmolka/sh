@@ -23,4 +23,7 @@ concept value_constructible = std::constructible_from<T>;
 template <typename T, typename... Ts>
 concept any_of = std::disjunction_v<std::is_same<T, Ts>...>;
 
+template <typename T>
+concept never = false;
+
 }  // namespace sh
