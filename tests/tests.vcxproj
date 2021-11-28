@@ -16,12 +16,14 @@
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\tests_array.cpp" />
+    <ClCompile Include="src\tests_hash.cpp" />
     <ClCompile Include="src\tests_parse.cpp" />
     <ClCompile Include="src\tests_stack.cpp" />
     <ClCompile Include="src\tests_vector.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\tests_array.h" />
+    <ClInclude Include="src\tests_hash.h" />
     <ClInclude Include="src\tests_parse.h" />
     <ClInclude Include="src\tests_stack.h" />
     <ClInclude Include="src\tests_vector.h" />

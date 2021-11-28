@@ -14,6 +14,7 @@
     <ClInclude Include="sh\array.h" />
     <ClInclude Include="sh\concepts.h" />
     <ClInclude Include="sh\fmt.h" />
+    <ClInclude Include="sh\hash.h" />
     <ClInclude Include="sh\int.h" />
     <ClInclude Include="sh\parse.h" />
     <ClInclude Include="sh\polyfill.h" />

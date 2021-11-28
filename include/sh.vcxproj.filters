@@ -42,6 +42,9 @@
     <ClInclude Include="sh\array.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="sh\hash.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
