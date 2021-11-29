@@ -48,6 +48,12 @@
     <ClInclude Include="sh\env.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="sh\main.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sh\windows.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
