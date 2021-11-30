@@ -1,51 +1,13 @@
 #pragma once
 
-#include <compare>
 #include <iterator>
-#include <ranges>
 #include <tuple>
+
+#include <sh/range.h>
 
 namespace sh {
 
-namespace detail {
-
-template <typename I, typename S>
-class range {
- public:
-  range(I begin, S end) : begin_(begin), end_(end) {}
-
-  [[nodiscard]] auto begin() -> I {
-    return begin_;
-  }
-
-  [[nodiscard]] auto end() -> S {
-    return end_;
-  }
-
-  [[nodiscard]] auto begin() const -> I {
-    return begin_;
-  }
-
-  [[nodiscard]] auto end() const -> S {
-    return end_;
-  }
-
-  [[nodiscard]] auto cbegin() const -> I {
-    return begin_;
-  }
-
-  [[nodiscard]] auto cend() const -> S {
-    return end_;
-  }
-
- private:
-  I begin_;
-  S end_;
-};
-
-}  // namespace detail
-
-template <typename Integral, std::input_iterator I, std::sentinel_for<I> S>
+template <std::integral Integral, typename I, typename S>
 class enumerate_iterator {
  public:
   using iterator_category = std::forward_iterator_tag;
@@ -86,8 +48,8 @@ class enumerate_iterator {
   S end_;
 };
 
-template <std::ranges::input_range Range, std::integral Integral = std::size_t>
-auto enumerate(Range& range, Integral start = 0) -> detail::range<
+template <sh::foreach_range Range, std::integral Integral = std::size_t>
+auto enumerate(Range& range, Integral start = 0) -> sh::range<
     enumerate_iterator<Integral, std::ranges::iterator_t<Range>, std::ranges::sentinel_t<Range>>,
     std::default_sentinel_t> {
   return {{start, std::ranges::begin(range), std::ranges::end(range)}, std::default_sentinel};

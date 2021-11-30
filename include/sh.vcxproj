@@ -17,10 +17,12 @@
     <ClInclude Include="sh\fmt.h" />
     <ClInclude Include="sh\hash.h" />
     <ClInclude Include="sh\int.h" />
+    <ClInclude Include="sh\iterator.h" />
     <ClInclude Include="sh\main.h" />
     <ClInclude Include="sh\parse.h" />
     <ClInclude Include="sh\polyfill.h" />
     <ClInclude Include="sh\pythonic.h" />
+    <ClInclude Include="sh\range.h" />
     <ClInclude Include="sh\stack.h" />
     <ClInclude Include="sh\utility.h" />
     <ClInclude Include="sh\vector.h" />
