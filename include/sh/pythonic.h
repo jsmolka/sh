@@ -50,14 +50,18 @@ class enumerate_iterator {
  public:
   using iterator_category = std::forward_iterator_tag;
   using difference_type = std::ptrdiff_t;
-  using value_type = std::tuple<Integral, std::iter_value_t<I>>;
+  using value_type = std::tuple<Integral&, std::iter_reference_t<I>>;
   using reference = value_type&;
   using pointer = value_type*;
 
   enumerate_iterator(Integral index, I begin, S end) : index_(index), begin_(begin), end_(end) {}
 
+  auto operator*() -> value_type {
+    return std::forward_as_tuple(index_, *begin_);
+  }
+
   auto operator*() const -> value_type {
-    return {index_, *begin_};
+    return std::forward_as_tuple(index_, *begin_);
   }
 
   auto operator++() -> enumerate_iterator& {

@@ -19,6 +19,14 @@ void tests_enumerate() {
       expect(eq(value, i));
     }
     expect(eq(i, 3));
+
+    for (auto [index, value] : sh::enumerate(x)) {
+      value++;
+    }
+
+    expect(eq(x[0], 2));
+    expect(eq(x[1], 3));
+    expect(eq(x[2], 4));
   };
 
   ::test("enumerate<array>") = []() {
@@ -30,6 +38,14 @@ void tests_enumerate() {
       expect(eq(value, i));
     }
     expect(eq(i, 3));
+
+    for (auto [index, value] : sh::enumerate(x)) {
+      value++;
+    }
+
+    expect(eq(x[0], 2));
+    expect(eq(x[1], 3));
+    expect(eq(x[2], 4));
   };
 
   ::test("enumerate<list>") = []() {
@@ -41,6 +57,10 @@ void tests_enumerate() {
       expect(eq(value, i));
     }
     expect(eq(i, 3));
+
+    for (auto [index, value] : sh::enumerate(x)) {
+      value++;
+    }
   };
 }
 
