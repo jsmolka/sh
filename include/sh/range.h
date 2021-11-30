@@ -1,17 +1,16 @@
 #pragma once
 
-#include <compare>
 #include <ranges>
 
 #include <sh/iterator.h>
 
 namespace sh {
 
-template <typename I, typename S>
-concept foreach_iterators = requires(I i, S s) {
+template <typename Iterator, typename Sentinel>
+concept foreach_iterators = requires(Iterator& i, Sentinel& s) {
   { i != s } -> std::same_as<bool>;
   ++i;
-  requires dereferencable<I>;
+  requires dereferencable<Iterator>;
 };
 
 template <typename Range>
@@ -21,41 +20,73 @@ concept foreach_range = requires {
   requires foreach_iterators<std::ranges::iterator_t<Range>, std::ranges::sentinel_t<Range>>;
 };
 
-template <typename I, typename S>
-  requires foreach_iterators<I, S>
+template <typename Iterator, typename Sentinel>
+  requires foreach_iterators<Iterator, Sentinel>
 class range {
  public:
-  range(I begin, S end) : begin_(begin), end_(end) {}
+  range(Iterator begin, Sentinel end) : begin_(begin), end_(end) {}
 
-  [[nodiscard]] auto begin() -> I {
+  [[nodiscard]] auto begin() -> Iterator {
     return begin_;
   }
 
-  [[nodiscard]] auto end() -> S {
+  [[nodiscard]] auto end() -> Sentinel {
     return end_;
   }
 
-  [[nodiscard]] auto begin() const -> I {
+  [[nodiscard]] auto begin() const -> Iterator {
     return begin_;
   }
 
-  [[nodiscard]] auto end() const -> S {
+  [[nodiscard]] auto end() const -> Sentinel {
     return end_;
   }
 
-  [[nodiscard]] auto cbegin() const -> I {
+  [[nodiscard]] auto cbegin() const -> Iterator {
     return begin_;
   }
 
-  [[nodiscard]] auto cend() const -> S {
+  [[nodiscard]] auto cend() const -> Sentinel {
     return end_;
   }
-
-  auto operator<=>(const range&) const = default;
 
  private:
-  I begin_;
-  S end_;
+  Iterator begin_;
+  Sentinel end_;
+};
+
+template <typename Iterator>
+  requires foreach_iterators<Iterator, std::default_sentinel_t>
+class sentinel_range {
+ public:
+  sentinel_range(Iterator begin) : begin_(begin) {}
+
+  [[nodiscard]] auto begin() -> Iterator {
+    return begin_;
+  }
+
+  [[nodiscard]] auto end() -> std::default_sentinel_t {
+    return std::default_sentinel;
+  }
+
+  [[nodiscard]] auto begin() const -> Iterator {
+    return begin_;
+  }
+
+  [[nodiscard]] auto end() const -> std::default_sentinel_t {
+    return std::default_sentinel;
+  }
+
+  [[nodiscard]] auto cbegin() const -> Iterator {
+    return begin_;
+  }
+
+  [[nodiscard]] auto cend() const -> std::default_sentinel_t {
+    return std::default_sentinel;
+  }
+
+ private:
+  Iterator begin_;
 };
 
 }  // namespace sh
