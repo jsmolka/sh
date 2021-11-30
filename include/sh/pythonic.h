@@ -82,18 +82,11 @@ class enumerate_iterator {
   S end_;
 };
 
-// clang-format off
-template <typename Range>
-auto enumerate(Range& range, std::size_t start = 0) ->
-  detail::range<
-    enumerate_iterator<
-      std::size_t,
-      std::ranges::iterator_t<Range>,
-      std::ranges::sentinel_t<Range>>,
-    std::default_sentinel_t>
-{
+template <std::ranges::input_range Range, std::integral Integral = std::size_t>
+auto enumerate(Range& range, Integral start = 0) -> detail::range<
+    enumerate_iterator<Integral, std::ranges::iterator_t<Range>, std::ranges::sentinel_t<Range>>,
+    std::default_sentinel_t> {
   return {{start, std::ranges::begin(range), std::ranges::end(range)}, std::default_sentinel};
 }
-// clang-format on
 
 }  // namespace sh
