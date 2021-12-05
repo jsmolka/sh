@@ -1,12 +1,11 @@
 #pragma once
 
-#include <iterator>
-
 #include <sh/int.h>
+#include <sh/iterator.h>
 
 namespace sh {
 
-inline u64 murmur(const void* buffer, u64 size, u64 seed) {
+inline auto murmur(const void* buffer, u64 size, u64 seed) -> u64 {
   constexpr auto kM = 0xC6A4'A793'5BD1'E995;
   constexpr auto kR = 47;
 
@@ -25,8 +24,8 @@ inline u64 murmur(const void* buffer, u64 size, u64 seed) {
     hash *= kM;
   }
 
-  auto remaining = reinterpret_cast<const u8*>(data);
   // clang-format off
+  auto remaining = reinterpret_cast<const u8*>(data);
   switch (size & 0x7) {
     case 7: hash ^= static_cast<u64>(remaining[6]) << 48; [[fallthrough]];
     case 6: hash ^= static_cast<u64>(remaining[5]) << 40; [[fallthrough]];
@@ -47,12 +46,12 @@ inline u64 murmur(const void* buffer, u64 size, u64 seed) {
 }
 
 template <typename T>
-u64 hash(const T& value) {
+auto hash(const T& value) -> u64 {
   return murmur(&value, sizeof(T), 0);
 }
 
-template <std::input_iterator I, std::sentinel_for<I> S>
-u64 hash(I first, S last) {
+template <sh::forward_iterator I, sh::sentinel_for<I> S>
+auto hash(I first, S last) -> u64 {
   u64 seed = 0;
   while (first != last) {
     const auto& value = *first++;

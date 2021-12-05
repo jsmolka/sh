@@ -6,11 +6,13 @@
 
 #if SH_CC_MSVC
 
-int main(int argc, char* argv[]);
+auto main(int argc, char* argv[]) -> int;
 
-#  pragma comment(linker, "/ENTRY:wmainCRTStartup")
+// clang-format off
+#pragma comment(linker, "/ENTRY:wmainCRTStartup")
+// clang-format on
 
-int wmain(int argc, wchar_t* argv[]) {
+auto wmain(int argc, wchar_t* argv[]) -> int {
   sh::vector<char*> args;
   for (int i = 0; i < argc; ++i) {
     const auto size = WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, NULL, 0, NULL, NULL);

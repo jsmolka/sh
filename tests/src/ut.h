@@ -9,7 +9,6 @@
 #include <sh/fmt.h>
 #include <sh/int.h>
 
-using sh::uint;
 using sh::u8;
 using sh::u16;
 using sh::u32;

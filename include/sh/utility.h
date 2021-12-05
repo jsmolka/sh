@@ -4,6 +4,8 @@
 
 #include <sh/env.h>
 
+namespace sh {
+
 #if SH_CC_MSVC
 #  define SH_INLINE __forceinline
 #  define SH_NO_INLINE __declspec(noinline)
@@ -21,8 +23,6 @@
 #else
 #  define SH_UNREACHABLE assert(false)
 #endif
-
-namespace sh {
 
 template <typename... Ts>
 constexpr void unused(const Ts&...) {}

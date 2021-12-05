@@ -14,28 +14,28 @@
 #  define SH_CC_MSVC 0
 #endif
 
-#if defined(__GNUC__) && !SH_CC_CLANG
-#  define SH_CC_GCC 1
-#else
-#  define SH_CC_GCC 0
-#endif
-
 #ifdef __clang__
 #  define SH_CC_CLANG 1
 #else
 #  define SH_CC_CLANG 0
 #endif
 
-#ifdef __EMSCRIPTEN__
-#  define SH_CC_EMSCRIPTEN 1
+#if defined(__GNUC__) && !SH_CC_CLANG
+#  define SH_CC_GCC 1
 #else
-#  define SH_CC_EMSCRIPTEN 0
+#  define SH_CC_GCC 0
 #endif
 
 #ifdef __MINGW32__
 #  define SH_CC_MINGW 1
 #else
 #  define SH_CC_MINGW 0
+#endif
+
+#ifdef __EMSCRIPTEN__
+#  define SH_CC_EMSCRIPTEN 1
+#else
+#  define SH_CC_EMSCRIPTEN 0
 #endif
 
 #ifdef _WIN32

@@ -81,7 +81,7 @@ void tests_enumerate() {
   };
 }
 
-void tests_reverse() {
+void tests_reversed() {
   ::test("reversed<vector>") = []() {
     std::vector<int> x = {0, 1, 2};
 
@@ -130,5 +130,5 @@ void tests_reverse() {
 
 void tests_ranges() {
   tests_enumerate();
-  tests_reverse();
+  tests_reversed();
 }

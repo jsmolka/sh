@@ -19,7 +19,8 @@ struct array<T, kSize> {
 };
 
 template <typename T, typename Func, std::size_t... kIs>
-constexpr std::array<T, sizeof...(kIs)> make_array(Func&& func, std::index_sequence<kIs...>) {
+constexpr auto make_array(Func&& func, std::index_sequence<kIs...>)
+    -> std::array<T, sizeof...(kIs)> {
   return {func(kIs)...};
 }
 
@@ -29,10 +30,10 @@ template <typename T, std::size_t kSize, std::size_t... kSizes>
 using array = typename detail::array<T, kSize, kSizes...>::type;
 
 template <typename T, std::size_t kSize, typename Func>
-  requires requires(Func&& f) {
-    { std::invoke(std::forward<Func>(f), std::size_t{}) } -> std::same_as<T>;
+  requires requires(Func&& f, std::size_t i) {
+    { std::invoke(std::forward<Func>(f), i) } -> std::same_as<T>;
   }
-constexpr std::array<T, kSize> make_array(Func&& func) {
+constexpr auto make_array(Func&& func) -> std::array<T, kSize> {
   return detail::make_array<T>(std::forward<Func>(func), std::make_index_sequence<kSize>{});
 }
 
