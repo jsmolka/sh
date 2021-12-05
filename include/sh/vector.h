@@ -243,8 +243,8 @@ class vector_base {
     }
 
     const auto count = std::distance(first, last);
+    assert(count >= 0);
     const auto distance = std::distance(cbegin(), pos);
-    assert(distance >= 0);
     grow_to_fit(count);
     const auto where = begin() + distance;
     const auto where_end = where + count;
