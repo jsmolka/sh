@@ -14,6 +14,14 @@ concept forward_range = requires {
   requires sentinel_for<sh::sentinel_t<Range>, sh::iterator_t<Range>>;
 };
 
+template <typename Range>
+concept reverse_range = requires {
+  typename sh::reverse_iterator_t<Range>;
+  typename sh::reverse_sentinel_t<Range>;
+  requires forward_iterator<sh::reverse_iterator_t<Range>>;
+  requires sentinel_for<sh::reverse_sentinel_t<Range>, sh::reverse_iterator_t<Range>>;
+};
+
 template <sh::forward_iterator I, sh::sentinel_for<I> S>
 class range {
  public:
@@ -80,6 +88,12 @@ class sentinel_range {
  private:
   I begin_;
 };
+
+template <sh::reverse_range Range>
+auto reversed(Range& range)
+    -> sh::range<sh::reverse_iterator_t<Range>, sh::reverse_sentinel_t<Range>> {
+  return {std::rbegin(range), std::rend(range)};
+}
 
 template <std::integral Integral, sh::forward_iterator I, sh::sentinel_for<I> S>
 class enumerate_iterator {

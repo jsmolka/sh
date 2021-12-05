@@ -10,7 +10,13 @@ template <typename T>
 using iterator_t = decltype(std::begin(std::declval<T&>()));
 
 template <typename T>
+using reverse_iterator_t = decltype(std::rbegin(std::declval<T&>()));
+
+template <typename T>
 using sentinel_t = decltype(std::end(std::declval<T&>()));
+
+template <typename T>
+using reverse_sentinel_t = decltype(std::rend(std::declval<T&>()));
 
 template <typename T>
 concept dereferencable = requires(T& t) {

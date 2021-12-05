@@ -81,8 +81,54 @@ void tests_enumerate() {
   };
 }
 
+void tests_reverse() {
+  ::test("reversed<vector>") = []() {
+    std::vector<int> x = {0, 1, 2};
+
+    std::size_t i = 2;
+    for (const auto& value : sh::reversed(x)) {
+      expect(eq(value, i--));
+    }
+
+    for (auto& value : sh::reversed(x)) {
+      value++;
+    }
+
+    expect(eq(x[0], 1));
+    expect(eq(x[1], 2));
+    expect(eq(x[2], 3));
+  };
+
+  ::test("reversed<array>") = []() {
+    int x[] = {0, 1, 2};
+
+    std::size_t i = 2;
+    for (const auto& value : sh::reversed(x)) {
+      expect(eq(value, i--));
+    }
+
+    for (auto& value : sh::reversed(x)) {
+      value++;
+    }
+
+    expect(eq(x[0], 1));
+    expect(eq(x[1], 2));
+    expect(eq(x[2], 3));
+  };
+
+  ::test("reversed<list>") = []() {
+    std::list<int> x = {0, 1, 2};
+
+    std::size_t i = 2;
+    for (const auto& value : sh::reversed(x)) {
+      expect(eq(value, i--));
+    }
+  };
+}
+
 }  // namespace
 
 void tests_ranges() {
   tests_enumerate();
+  tests_reverse();
 }
