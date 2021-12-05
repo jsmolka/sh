@@ -62,6 +62,23 @@ void tests_enumerate() {
       value++;
     }
   };
+
+  ::test("nested enumerate") = []() {
+    std::vector<int> x = {0, 1, 2};
+    auto range = sh::enumerate(x, 1);
+
+    std::size_t i = 0;
+    for (auto [index, value] : sh::enumerate(range, 2)) {
+      expect(eq(index, i + 2));
+      expect(eq(value.index, i + 1));
+      expect(eq(value.value, i));
+      value.value *= 2;
+      i++;
+    }
+    expect(eq(x[0], 0));
+    expect(eq(x[1], 2));
+    expect(eq(x[2], 4));
+  };
 }
 
 }  // namespace

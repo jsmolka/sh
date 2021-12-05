@@ -15,9 +15,9 @@ concept foreach_iterators = requires(Iterator& i, Sentinel& s) {
 
 template <typename Range>
 concept foreach_range = requires {
-  typename std::ranges::iterator_t<Range>;
-  typename std::ranges::sentinel_t<Range>;
-  requires foreach_iterators<std::ranges::iterator_t<Range>, std::ranges::sentinel_t<Range>>;
+  typename sh::iterator_t<Range>;
+  typename sh::sentinel_t<Range>;
+  requires foreach_iterators<sh::iterator_t<Range>, sh::sentinel_t<Range>>;
 };
 
 template <typename Iterator, typename Sentinel>
