@@ -54,10 +54,7 @@
     <ClInclude Include="sh\windows.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="sh\pythonic.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="sh\range.h">
+    <ClInclude Include="sh\ranges.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="sh\iterator.h">

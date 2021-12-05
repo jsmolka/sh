@@ -20,4 +20,15 @@ concept dereferencable = requires(T& t) {
 template <dereferencable T>
 using iter_reference_t = decltype(*std::declval<T&>());
 
+template <typename I>
+concept forward_iterator = requires(I& i) {
+  requires dereferencable<I>;
+  ++i;
+};
+
+template <typename S, typename I>
+concept sentinel_for = requires(I& i, S& s) {
+  { i != s } -> std::same_as<bool>;
+};
+
 }  // namespace sh

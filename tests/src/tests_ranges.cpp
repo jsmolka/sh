@@ -1,9 +1,9 @@
-#include "tests_pythonic.h"
+#include "tests_ranges.h"
 
 #include <list>
 #include <vector>
 
-#include <sh/pythonic.h>
+#include <sh/ranges.h>
 
 #include "ut.h"
 
@@ -83,6 +83,6 @@ void tests_enumerate() {
 
 }  // namespace
 
-void tests_pythonic() {
+void tests_ranges() {
   tests_enumerate();
 }
