@@ -1,3 +1,4 @@
+#include "tests_argparse.h"
 #include "tests_array.h"
 #include "tests_hash.h"
 #include "tests_parse.h"
@@ -12,4 +13,5 @@ int main() {
   tests_array();
   tests_hash();
   tests_ranges();
+  tests_argparse();
 }
