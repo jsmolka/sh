@@ -87,4 +87,9 @@ auto parse(std::string_view data) -> std::optional<String> {
   return String(data.begin(), data.end());
 }
 
+template <typename T>
+concept parsable = requires() {
+  { parse<T>(std::string_view{}) } -> std::same_as<std::optional<T>>;
+};
+
 }  // namespace sh

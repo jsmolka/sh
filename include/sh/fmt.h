@@ -21,3 +21,10 @@
 #  undef FMT_HEADER_ONLY
 #  undef FMT_HEADER_ONLY_DEFINED
 #endif
+
+namespace sh {
+
+template <typename T>
+concept formattable = fmt::is_formattable<T>::value;
+
+}  // namespace sh
