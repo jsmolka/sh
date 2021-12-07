@@ -307,17 +307,17 @@ class vector_base {
 
   template <typename... Args>
     requires std::constructible_from<value_type, Args...>
-  void emplace_back(Args&&... args) {
+  auto emplace_back(Args&&... args) -> reference {
     grow_to_fit();
-    std::construct_at(head_++, std::forward<Args>(args)...);
+    return *std::construct_at(head_++, std::forward<Args>(args)...);
   }
 
   void push_back(const value_type& value) requires sh::copy_constructible<value_type> {
-    emplace_back(value);
+    (void)emplace_back(value);
   }
 
   void push_back(value_type&& value) requires sh::move_constructible<value_type> {
-    emplace_back(std::forward<value_type>(value));
+    (void)emplace_back(std::forward<value_type>(value));
   }
 
   void pop_back() {

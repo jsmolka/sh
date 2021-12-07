@@ -801,9 +801,9 @@ struct tests_emplace_back : tests<T, N> {
   static void run() {
     test("emplace_back(Args...)") = []() {
       vector vec1{};
-      vec1.emplace_back(0);
-      vec1.emplace_back(1);
-      vec1.emplace_back(2);
+      expect(eq(vec1.emplace_back(0), 0));
+      expect(eq(vec1.emplace_back(1), 1));
+      expect(eq(vec1.emplace_back(2), 2));
       expect(eq(vec1.size(), 3));
       expect(eq(vec1[0], 0));
       expect(eq(vec1[1], 1));
@@ -814,9 +814,9 @@ struct tests_emplace_back : tests<T, N> {
         T v2(1);
         T v3(2);
         vector vec2{};
-        vec2.emplace_back(v1);
-        vec2.emplace_back(v2);
-        vec2.emplace_back(v3);
+        expect(eq(vec2.emplace_back(v1), 0));
+        expect(eq(vec2.emplace_back(v2), 1));
+        expect(eq(vec2.emplace_back(v3), 2));
         expect(eq(vec2.size(), 3));
         expect(eq(vec2, vector{0, 1, 2}));
       }
