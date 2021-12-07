@@ -30,7 +30,7 @@ using iter_reference_t = decltype(*std::declval<T&>());
 template <typename I>
 concept forward_iterator = requires(I& i) {
   requires dereferencable<I>;
-  ++i;
+  { ++i } -> std::same_as<I&>;
 };
 
 template <typename S, typename I>
