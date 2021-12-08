@@ -36,9 +36,6 @@
     <ClInclude Include="sh\int.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="sh\polyfill.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="sh\array.h">
       <Filter>Header Files</Filter>
     </ClInclude>
