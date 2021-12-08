@@ -103,9 +103,9 @@ struct tests_emplace : tests<T, N> {
   static void run() {
     test("emplace(Args&&)") = []() {
       stack stk1{};
-      stk1.emplace(0);
-      stk1.emplace(1);
-      stk1.emplace(2);
+      expect(eq(stk1.emplace(0), 0));
+      expect(eq(stk1.emplace(1), 1));
+      expect(eq(stk1.emplace(2), 2));
       expect(eq(stk1[0], 0));
       expect(eq(stk1[1], 1));
       expect(eq(stk1[2], 2));

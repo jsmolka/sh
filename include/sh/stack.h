@@ -74,8 +74,8 @@ class stack : private sh::vector<T, kSize> {
 
   template <typename... Args>
     requires std::constructible_from<value_type, Args...>
-  void emplace(Args&&... args) {
-    this->emplace_back(std::forward<Args>(args)...);
+  auto emplace(Args&&... args) -> reference {
+    return this->emplace_back(std::forward<Args>(args)...);
   }
 
   void pop() {
