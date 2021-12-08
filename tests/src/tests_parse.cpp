@@ -87,7 +87,7 @@ struct tests_float : tests<T> {
       const auto string = fmt::format("{:f}", expected);
       const auto value = sh::parse<T>(static_cast<String>(string));
       expect(value.has_value());
-      expect(eq(_i(*value), _i(expected)));
+      expect(eq(_d(*value, 0.001), _d(expected)));
     }
   }
 
