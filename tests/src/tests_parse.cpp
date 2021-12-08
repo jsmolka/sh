@@ -2,16 +2,14 @@
 
 #include <numeric>
 
-#include <sh/parse.h>
-
-#include "ut.h"
+#include "common.h"
 
 namespace {
 
 template <typename T>
 struct tests {
   static auto test(std::string_view what) {
-    return ::test("parse<{}>::{}", typeid(T).name(), what);
+    return sh::test("parse<{}>::{}", typeid(T).name(), what);
   }
 };
 
@@ -23,7 +21,7 @@ struct tests_integral : tests<T> {
   static void linear(Format format) {
     using counter = std::conditional_t<std::is_signed_v<T>, s64, u64>;
 
-    const auto step = [](u64 value) -> u64 {
+    const auto step = [](sh::u64 value) -> u64 {
       return [&]() -> u64 {
         if (value <= std::numeric_limits<u8>::max()) {
           return std::numeric_limits<u8>::max();

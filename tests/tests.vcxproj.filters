@@ -47,10 +47,10 @@
     <ClInclude Include="src\tests_vector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\ut.h">
+    <ClInclude Include="src\common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\types.h">
+    <ClInclude Include="src\common_types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\tests_stack.h">

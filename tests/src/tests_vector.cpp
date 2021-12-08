@@ -1,24 +1,14 @@
 #include "tests_vector.h"
 
-#include <sh/vector.h>
+#include "common.h"
+#include "common_types.h"
 
-#include "types.h"
-#include "ut.h"
+template <typename T, std::size_t N>
+auto operator<<(std::ostream& out, const sh::vector<T, N>& vector) -> std::ostream& {
+  return fmt::format("[{}]", fmt::join(vector, ", "));
+}
 
 namespace {
-
-template <typename T, std::size_t kSize>
-auto operator<<(std::ostream& out, const sh::vector<T, kSize>& vec) -> std::ostream& {
-  out << "[";
-  for (const auto& value : vec) {
-    if (&value != vec.begin()) {
-      out << ", ";
-    }
-    out << value;
-  }
-  out << "]";
-  return out;
-}
 
 template <typename T, std::size_t N>
 struct tests {
@@ -29,7 +19,7 @@ struct tests {
   }
 
   static auto test(std::string_view what) {
-    return ::test("vector<{}, {}>::{}", typeid(T).name(), N, what);
+    return sh::test("vector<{}, {}>::{}", typeid(T).name(), N, what);
   }
 };
 

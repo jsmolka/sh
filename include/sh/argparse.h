@@ -25,7 +25,8 @@ auto repr(const T& value) -> std::string {
 }
 
 // Todo: better
-auto split(std::string_view string, std::string_view delims) -> std::vector<std::string_view> {
+inline auto split(std::string_view string, std::string_view delims)
+    -> std::vector<std::string_view> {
   std::vector<std::string_view> output;
   size_t first = 0;
 

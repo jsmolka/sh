@@ -3,14 +3,12 @@
 #include <list>
 #include <vector>
 
-#include <sh/ranges.h>
-
-#include "ut.h"
+#include "common.h"
 
 namespace {
 
 void tests_enumerate() {
-  ::test("enumerate<vector>") = []() {
+  sh::test("enumerate<vector>") = []() {
     std::vector<int> x = {1, 2, 3};
 
     std::size_t i = 0;
@@ -23,13 +21,12 @@ void tests_enumerate() {
     for (auto [index, value] : sh::enumerate(x)) {
       value++;
     }
-
     expect(eq(x[0], 2));
     expect(eq(x[1], 3));
     expect(eq(x[2], 4));
   };
 
-  ::test("enumerate<array>") = []() {
+  sh::test("enumerate<array>") = []() {
     int x[] = {1, 2, 3};
 
     std::size_t i = 0;
@@ -42,13 +39,12 @@ void tests_enumerate() {
     for (auto [index, value] : sh::enumerate(x)) {
       value++;
     }
-
     expect(eq(x[0], 2));
     expect(eq(x[1], 3));
     expect(eq(x[2], 4));
   };
 
-  ::test("enumerate<list>") = []() {
+  sh::test("enumerate<list>") = []() {
     std::list<int> x = {1, 2, 3};
 
     std::size_t i = 0;
@@ -63,7 +59,7 @@ void tests_enumerate() {
     }
   };
 
-  ::test("nested enumerate") = []() {
+  sh::test("nested enumerate") = []() {
     std::vector<int> x = {0, 1, 2};
     auto range = sh::enumerate(x, 1);
 
@@ -82,7 +78,7 @@ void tests_enumerate() {
 }
 
 void tests_reversed() {
-  ::test("reversed<vector>") = []() {
+  sh::test("reversed<vector>") = []() {
     std::vector<int> x = {0, 1, 2};
 
     std::size_t i = 2;
@@ -99,7 +95,7 @@ void tests_reversed() {
     expect(eq(x[2], 3));
   };
 
-  ::test("reversed<array>") = []() {
+  sh::test("reversed<array>") = []() {
     int x[] = {0, 1, 2};
 
     std::size_t i = 2;
@@ -116,7 +112,7 @@ void tests_reversed() {
     expect(eq(x[2], 3));
   };
 
-  ::test("reversed<list>") = []() {
+  sh::test("reversed<list>") = []() {
     std::list<int> x = {0, 1, 2};
 
     std::size_t i = 2;
@@ -127,7 +123,7 @@ void tests_reversed() {
 }
 
 void tests_contains() {
-  ::test("contains<vector>") = []() {
+  sh::test("contains<vector>") = []() {
     std::vector<int> x = {0, 1, 2};
     expect(sh::contains(x, 0));
     expect(sh::contains(x, 1));
@@ -135,7 +131,7 @@ void tests_contains() {
     expect(!sh::contains(x, 3));
   };
 
-  ::test("contains<array>") = []() {
+  sh::test("contains<array>") = []() {
     int x[] = {0, 1, 2};
     expect(sh::contains(x, 0));
     expect(sh::contains(x, 1));
@@ -143,7 +139,7 @@ void tests_contains() {
     expect(!sh::contains(x, 3));
   };
 
-  ::test("contains<list>") = []() {
+  sh::test("contains<list>") = []() {
     std::list<int> x = {0, 1, 2};
     expect(sh::contains(x, 0));
     expect(sh::contains(x, 1));

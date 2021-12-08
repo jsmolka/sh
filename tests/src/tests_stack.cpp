@@ -1,31 +1,21 @@
 #include "tests_stack.h"
 
-#include <sh/stack.h>
+#include "common.h"
+#include "common_types.h"
 
-#include "types.h"
-#include "ut.h"
+template <typename T, std::size_t N>
+auto operator<<(std::ostream& out, const sh::stack<T, N>& vector) -> std::ostream& {
+  return fmt::format("[{}]", fmt::join(vector, ", "));
+}
 
 namespace {
-
-template <typename T, std::size_t kSize>
-auto operator<<(std::ostream& out, const sh::stack<T, kSize>& stack) -> std::ostream& {
-  out << "[";
-  for (const auto& value : stack) {
-    if (&value != stack.begin()) {
-      out << ", ";
-    }
-    out << value;
-  }
-  out << "]";
-  return out;
-}
 
 template <typename T, std::size_t N>
 struct tests {
   using stack = sh::stack<T, N>;
 
   static auto test(std::string_view what) {
-    return ::test("stack<{}, {}>::{}", typeid(T).name(), N, what);
+    return sh::test("stack<{}, {}>::{}", typeid(T).name(), N, what);
   }
 };
 

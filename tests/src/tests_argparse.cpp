@@ -1,8 +1,6 @@
 #include "tests_argparse.h"
 
-#include <sh/argparse.h>
-
-#include "ut.h"
+#include "common.h"
 
 namespace {
 
@@ -12,7 +10,7 @@ std::size_t argc(T (&)[kSize]) {
 }
 
 void tests_bool() {
-  ::test("argparse<bool>") = []() {
+  sh::test("argparse<bool>") = []() {
     const char* argv[] = {"program.exe", "-a", "-b=true", "-c=false", "true", "false"};
     sh::argument_parser parser;
     parser.add<bool>("-a");
@@ -38,7 +36,7 @@ void tests_bool() {
 }
 
 void tests_int() {
-  ::test("argparse<int>") = []() {
+  sh::test("argparse<int>") = []() {
     const char* argv[] = {"program.exe", "-a", "0", "-b", "1", "-c=0b10", "0x3", "4"};
     sh::argument_parser parser;
     parser.add<int>("-a");
@@ -64,7 +62,7 @@ void tests_int() {
 }
 
 void tests_double() {
-  ::test("argparse<double>") = []() {
+  sh::test("argparse<double>") = []() {
     const char* argv[] = {"program.exe", "-a", "0.0", "-b", "0.1", "-c=0.2", "0.3", "0.4"};
     sh::argument_parser parser;
     parser.add<double>("-a");
@@ -91,7 +89,7 @@ void tests_double() {
 
 template <typename String>
 void tests_string() {
-  ::test("argparse<{}>", typeid(String).name()) = []() {
+  sh::test("argparse<{}>", typeid(String).name()) = []() {
     const char* argv[] = {"program.exe", "-a",       "test0", "-b",
                           "test1",       "-c=test2", "test3", "test4"};
     sh::argument_parser parser;
@@ -118,7 +116,7 @@ void tests_string() {
 }
 
 void tests_error() {
-  ::test("argparse missing argument value") = []() {
+  sh::test("argparse missing argument value") = []() {
     const char* argv[] = {"program.exe", "-x"};
     sh::argument_parser parser;
     parser.add<int>("-x");
@@ -127,7 +125,7 @@ void tests_error() {
     }));
   };
 
-  ::test("argparse wrong type argument") = []() {
+  sh::test("argparse wrong type argument") = []() {
     const char* argv[] = {"program.exe", "-x", "wrong"};
     sh::argument_parser parser;
     parser.add<int>("-x");
@@ -136,7 +134,7 @@ void tests_error() {
     }));
   };
 
-  ::test("argparse missing keyword argument") = []() {
+  sh::test("argparse missing keyword argument") = []() {
     const char* argv[] = {"program.exe"};
     sh::argument_parser parser;
     parser.add<int>("-x");
@@ -145,7 +143,7 @@ void tests_error() {
     }));
   };
 
-  ::test("argparse missing positional argument") = []() {
+  sh::test("argparse missing positional argument") = []() {
     const char* argv[] = {"program.exe"};
     sh::argument_parser parser;
     parser.add<int>("x");

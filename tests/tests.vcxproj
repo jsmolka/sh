@@ -31,8 +31,8 @@
     <ClInclude Include="src\tests_ranges.h" />
     <ClInclude Include="src\tests_stack.h" />
     <ClInclude Include="src\tests_vector.h" />
-    <ClInclude Include="src\types.h" />
-    <ClInclude Include="src\ut.h" />
+    <ClInclude Include="src\common_types.h" />
+    <ClInclude Include="src\common.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
