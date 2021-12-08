@@ -18,7 +18,7 @@
 // The fmt library version in the form major * 10000 + minor * 100 + patch.
 #define FMT_VERSION 80001
 
-#if defined (__clang__ ) && !defined(__ibmxl__)
+#if defined(__clang__) && !defined(__ibmxl__)
 #  define FMT_CLANG_VERSION (__clang_major__ * 100 + __clang_minor__)
 #else
 #  define FMT_CLANG_VERSION 0
@@ -82,11 +82,17 @@
 #  define FMT_HAS_CPP_ATTRIBUTE(x) 0
 #endif
 
+#ifdef _MSVC_LANG
+#  define FMT_CPLUSPLUS _MSVC_LANG
+#else
+#  define FMT_CPLUSPLUS __cplusplus
+#endif
+
 #define FMT_HAS_CPP14_ATTRIBUTE(attribute) \
-  (__cplusplus >= 201402L && FMT_HAS_CPP_ATTRIBUTE(attribute))
+  (FMT_CPLUSPLUS >= 201402L && FMT_HAS_CPP_ATTRIBUTE(attribute))
 
 #define FMT_HAS_CPP17_ATTRIBUTE(attribute) \
-  (__cplusplus >= 201703L && FMT_HAS_CPP_ATTRIBUTE(attribute))
+  (FMT_CPLUSPLUS >= 201703L && FMT_HAS_CPP_ATTRIBUTE(attribute))
 
 // Check if relaxed C++14 constexpr is supported.
 // GCC doesn't allow throw in constexpr until version 6 (bug 67371).
@@ -180,11 +186,18 @@
 #  else
 #    define FMT_FALLTHROUGH
 #  endif
-#elif FMT_HAS_CPP17_ATTRIBUTE(fallthrough) || \
-    (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L)
+#elif FMT_HAS_CPP17_ATTRIBUTE(fallthrough)
 #  define FMT_FALLTHROUGH [[fallthrough]]
 #else
 #  define FMT_FALLTHROUGH
+#endif
+
+#ifndef FMT_NODISCARD
+#  if FMT_HAS_CPP17_ATTRIBUTE(nodiscard)
+#    define FMT_NODISCARD [[nodiscard]]
+#  else
+#    define FMT_NODISCARD
+#  endif
 #endif
 
 #ifndef FMT_USE_FLOAT
@@ -259,8 +272,9 @@
 #ifndef FMT_CONSTEVAL
 #  if ((FMT_GCC_VERSION >= 1000 || FMT_CLANG_VERSION >= 1101) &&      \
        __cplusplus > 201703L && !defined(__apple_build_version__)) || \
-      (defined(__cpp_consteval) && (!FMT_MSC_VER || _MSC_FULL_VER >= 193030704))
-  // consteval is broken in MSVC before VS2022 and Apple clang 13.
+      (defined(__cpp_consteval) &&                                    \
+       (!FMT_MSC_VER || _MSC_FULL_VER >= 193030704))
+// consteval is broken in MSVC before VS2022 and Apple clang 13.
 #    define FMT_CONSTEVAL consteval
 #    define FMT_HAS_CONSTEVAL
 #  else
@@ -858,7 +872,7 @@ class iterator_buffer final : public Traits, public buffer<T> {
   T data_[buffer_size];
 
  protected:
-  void grow(size_t) override {
+  FMT_CONSTEXPR20 void grow(size_t) override {
     if (this->size() == buffer_size) flush();
   }
 
@@ -892,7 +906,7 @@ class iterator_buffer<T*, T, fixed_buffer_traits> final
   T data_[buffer_size];
 
  protected:
-  void grow(size_t) override {
+  FMT_CONSTEXPR20 void grow(size_t) override {
     if (this->size() == this->capacity()) flush();
   }
 
@@ -930,7 +944,7 @@ class iterator_buffer<T*, T, fixed_buffer_traits> final
 
 template <typename T> class iterator_buffer<T*, T> final : public buffer<T> {
  protected:
-  void grow(size_t) override {}
+  FMT_CONSTEXPR20 void grow(size_t) override {}
 
  public:
   explicit iterator_buffer(T* out, size_t = 0) : buffer<T>(out, 0, ~size_t()) {}
@@ -948,7 +962,7 @@ class iterator_buffer<std::back_insert_iterator<Container>,
   Container& container_;
 
  protected:
-  void grow(size_t capacity) override {
+  FMT_CONSTEXPR20 void grow(size_t capacity) override {
     container_.resize(capacity);
     this->set(&container_[0], capacity);
   }
@@ -971,7 +985,7 @@ template <typename T = char> class counting_buffer final : public buffer<T> {
   size_t count_ = 0;
 
  protected:
-  void grow(size_t) override {
+  FMT_CONSTEXPR20 void grow(size_t) override {
     if (this->size() != buffer_size) return;
     count_ += this->size();
     this->clear();
@@ -1370,8 +1384,14 @@ template <typename Context> struct arg_mapper {
 
   // We use SFINAE instead of a const T* parameter to avoid conflicting with
   // the C array overload.
-  template <typename T, FMT_ENABLE_IF(std::is_pointer<T>::value)>
-  FMT_CONSTEXPR auto map(T) -> unformattable_pointer {
+  template <
+      typename T,
+      FMT_ENABLE_IF(
+          std::is_member_pointer<T>::value ||
+          std::is_function<typename std::remove_pointer<T>::type>::value ||
+          (std::is_convertible<const T&, const void*>::value &&
+           !std::is_convertible<const T&, const char_type*>::value))>
+  FMT_CONSTEXPR auto map(const T&) -> unformattable_pointer {
     return {};
   }
 
@@ -3065,7 +3085,8 @@ FMT_API auto vformat(string_view fmt, format_args args) -> std::string;
   \endrst
 */
 template <typename... T>
-FMT_INLINE auto format(format_string<T...> fmt, T&&... args) -> std::string {
+FMT_NODISCARD FMT_INLINE auto format(format_string<T...> fmt, T&&... args)
+    -> std::string {
   return vformat(fmt, fmt::make_format_args(args...));
 }
 
@@ -3132,7 +3153,8 @@ FMT_INLINE auto format_to_n(OutputIt out, size_t n, format_string<T...> fmt,
 
 /** Returns the number of chars in the output of ``format(fmt, args...)``. */
 template <typename... T>
-FMT_INLINE auto formatted_size(format_string<T...> fmt, T&&... args) -> size_t {
+FMT_NODISCARD FMT_INLINE auto formatted_size(format_string<T...> fmt,
+                                             T&&... args) -> size_t {
   auto buf = detail::counting_buffer<>();
   detail::vformat_to(buf, string_view(fmt), fmt::make_format_args(args...), {});
   return buf.count();
