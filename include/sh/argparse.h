@@ -8,12 +8,14 @@
 #include <sh/concepts.h>
 #include <sh/fmt.h>
 #include <sh/parse.h>
+#include <sh/ranges.h>
 
 namespace sh {
 
 namespace detail {
 
-template <sh::formattable T>
+// sh::formattable
+template <typename T>
 auto repr(const T& value) -> std::string {
   if constexpr (std::convertible_to<T, std::string_view>) {
     return fmt::format("\"{}\"", std::string_view{value});
@@ -73,8 +75,10 @@ class argument {
   std::vector<std::string_view> options;
 };
 
+// sh::copy_constructible<T> && sh::parsable<T> && sh::formattable<T>
+// std::string???
 template <typename T>
-concept argument_type = sh::copy_constructible<T> && sh::parsable<T> && sh::formattable<T>;
+concept argument_type = true;
 
 template <argument_type T>
 class argument_t : public argument {
@@ -86,9 +90,11 @@ class argument_t : public argument {
     return *this;
   }
 
-  auto operator|(const T& value) -> argument_t<T>& {
-    default_value_repr = detail::repr(value);
-    default_value = value;
+  template <std::convertible_to<T> U>
+  auto operator|(const U& value) -> argument_t<T>& {
+    const T data(value);
+    default_value_repr = detail::repr(data);
+    default_value = std::move(data);
     return *this;
   }
 
@@ -96,7 +102,21 @@ class argument_t : public argument {
     return std::same_as<T, bool>;
   }
 
-  void parse(std::string_view data) {}
+  void parse(std::string_view data) {
+    if (data == std::string_view()) {
+      if constexpr (std::same_as<T, bool>) {
+        value = true;
+      } else {
+        throw std::runtime_error("fak bool");
+      }
+    } else {
+      if (auto value = sh::parse<T>(data)) {
+        this->value = std::move(*value);
+      } else {
+        throw std::runtime_error("fak parse");
+      }
+    }
+  }
 };
 
 class argument_parser {
@@ -124,9 +144,10 @@ class argument_parser {
         } else if (idx < argc && !value->boolean() && !find(argv[idx])) {
           value->parse(argv[idx++]);
         } else {
-          value->parse(std::string_view{});
+          value->parse({});
         }
       } else {
+        // Todo: throw if unmatched
         int i = 0;
         for (auto& arg_ : args_) {
           if (arg_->positional()) {
@@ -139,19 +160,41 @@ class argument_parser {
         }
       }
     }
+
+    validate();
+  }
+
+  template <argument_type T>
+  T get(std::string_view option) const {
+    for (auto& arg : args_) {
+      if (contains(arg->options, option)) {
+        if (arg->value.has_value()) {
+          return std::any_cast<T>(arg->value);
+        } else {
+          return std::any_cast<T>(arg->default_value);
+        }
+      }
+    }
+    return {};
   }
 
  private:
   // Todo: better
   argument* find(std::string_view option) {
     for (auto& arg : args_) {
-      for (const auto& o : arg->options) {
-        if (o == option) {
-          return arg.get();
-        }
+      if (contains(arg->options, option)) {
+        return arg.get();
       }
     }
     return nullptr;
+  }
+
+  void validate() {
+    for (const auto& arg : args_) {
+      if (arg->required() && !(arg->value.has_value() || arg->default_value.has_value())) {
+        throw std::runtime_error("fak validate");
+      }
+    }
   }
 
   std::vector<std::unique_ptr<argument>> args_;
