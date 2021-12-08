@@ -14,6 +14,12 @@ concept forward_range = requires {
   requires sentinel_for<sh::sentinel_t<Range>, sh::iterator_t<Range>>;
 };
 
+template <forward_range Range>
+using range_value_t = sh::iter_value_t<sh::iterator_t<Range>>;
+
+template <forward_range Range>
+using range_reference_t = sh::iter_reference_t<sh::iterator_t<Range>>;
+
 template <typename Range>
 concept reverse_range = requires {
   typename sh::reverse_iterator_t<Range>;
@@ -88,6 +94,11 @@ class sentinel_range {
  private:
   I begin_;
 };
+
+template <forward_range Range>
+auto contains(const Range& range, const range_value_t<Range>& value) {
+  return std::find(std::begin(range), std::end(range), value) != std::end(range);
+}
 
 template <sh::reverse_range Range>
 auto reversed(Range& range)

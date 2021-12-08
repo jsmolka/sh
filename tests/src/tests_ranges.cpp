@@ -126,9 +126,36 @@ void tests_reversed() {
   };
 }
 
+void tests_contains() {
+  ::test("contains<vector>") = []() {
+    std::vector<int> x = {0, 1, 2};
+    expect(sh::contains(x, 0));
+    expect(sh::contains(x, 1));
+    expect(sh::contains(x, 2));
+    expect(!sh::contains(x, 3));
+  };
+
+  ::test("contains<array>") = []() {
+    int x[] = {0, 1, 2};
+    expect(sh::contains(x, 0));
+    expect(sh::contains(x, 1));
+    expect(sh::contains(x, 2));
+    expect(!sh::contains(x, 3));
+  };
+
+  ::test("contains<list>") = []() {
+    std::list<int> x = {0, 1, 2};
+    expect(sh::contains(x, 0));
+    expect(sh::contains(x, 1));
+    expect(sh::contains(x, 2));
+    expect(!sh::contains(x, 3));
+  };
+}
+
 }  // namespace
 
 void tests_ranges() {
   tests_enumerate();
   tests_reversed();
+  tests_contains();
 }

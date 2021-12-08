@@ -25,6 +25,9 @@ concept dereferencable = requires(T& t) {
 };
 
 template <dereferencable T>
+using iter_value_t = std::remove_reference_t<decltype(*std::declval<T&>())>;
+
+template <dereferencable T>
 using iter_reference_t = decltype(*std::declval<T&>());
 
 template <typename I>
