@@ -81,10 +81,10 @@ class argument_t : public argument {
   }
 
   template <std::convertible_to<T> U>
-  auto operator|(const U& value) -> argument_t<T>& {
-    const T data(value);
-    default_value_repr = detail::repr(data);
-    default_value = std::move(data);
+  auto operator|(const U& data) -> argument_t<T>& {
+    const T value(data);
+    default_value_repr = detail::repr(value);
+    default_value = std::move(value);
     return *this;
   }
 
@@ -100,10 +100,11 @@ class argument_t : public argument {
         throw std::runtime_error("fak bool");
       }
     } else {
-      if (auto value = sh::parse<T>(detail::trim(data))) {
+      data = detail::trim(data);
+      if (const auto value = sh::parse<T>(data)) {
         this->value = std::move(*value);
       } else {
-        throw std::runtime_error("fak parse");
+        throw std::runtime_error(fmt::format("cannot parse: {}", data));
       }
     }
   }
@@ -121,42 +122,33 @@ class argument_parser {
   }
 
   void parse(int argc, const char* const* argv) {
-    int idx = 1;
-    int pos = 0;
-
-    while (idx < argc) {
-      auto arg = detail::trim(argv[idx++]);
-      auto kvp = detail::split(arg, '=');  // Todo: split first
-
-      if (auto value = find(kvp.front())) {
-        if (kvp.size() == 2) {
-          value->parse(kvp.back());
-        } else if (idx < argc && !value->boolean() && !find(argv[idx])) {
-          value->parse(argv[idx++]);
+    auto index = 1;
+    auto positional = 0;
+    while (index < argc) {
+      const auto data = detail::trim(argv[index++]);
+      const auto pair = detail::split(data, '=');
+      if (const auto argument = find(pair.front())) {
+        if (pair.size() == 2) {
+          argument->parse(pair.back());
+        } else if (index < argc && !argument->boolean() && !find(argv[index])) {
+          argument->parse(argv[index++]);
         } else {
-          value->parse({});
+          argument->parse({});
         }
       } else {
-        // Todo: throw if unmatched
-        int i = 0;
-        for (auto& arg_ : args_) {
-          if (arg_->positional()) {
-            if (i++ == pos) {
-              arg_->parse(arg);
-              pos++;
-              break;
-            }
-          }
+        if (const auto argument = find(positional++)) {
+          argument->parse(data);
+        } else {
+          throw std::runtime_error(fmt::format("unmatched positional argument: {}", data));
         }
       }
     }
-
     validate();
   }
 
   template <argument_type T>
   auto get(std::string_view name) const -> T {
-    if (auto arg = find(detail::trim(name))) {
+    if (auto arg = find(name)) {
       if (arg->value.has_value()) {
         return std::any_cast<T>(arg->value);
       } else {
@@ -168,8 +160,18 @@ class argument_parser {
 
  private:
   auto find(std::string_view name) const -> argument* {
+    name = detail::trim(name);
     for (const auto& arg : args_) {
       if (contains(arg->names, name)) {
+        return arg.get();
+      }
+    }
+    return nullptr;
+  }
+
+  auto find(std::size_t position) const -> argument* {
+    for (const auto& arg : args_) {
+      if (arg->positional() && position-- == 0) {
         return arg.get();
       }
     }

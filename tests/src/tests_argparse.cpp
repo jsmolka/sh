@@ -151,6 +151,14 @@ void tests_error() {
       parser.parse(argc(argv), argv);
     }));
   };
+
+  sh::test("argparse unmatched argument") = []() {
+    const char* argv[] = {"program.exe", "x"};
+    sh::argument_parser parser;
+    expect(throws([&]() {
+      parser.parse(argc(argv), argv);
+    }));
+  };
 }
 
 void tests_trim() {
