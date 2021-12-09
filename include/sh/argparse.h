@@ -14,8 +14,7 @@ namespace sh {
 
 namespace detail {
 
-// sh::formattable
-template <typename T>
+template <sh::formattable T>
 auto repr(const T& value) -> std::string {
   if constexpr (std::convertible_to<T, std::string_view>) {
     return fmt::format("\"{}\"", std::string_view{value});
@@ -24,46 +23,38 @@ auto repr(const T& value) -> std::string {
   }
 }
 
-// Todo: better
-inline auto split(std::string_view string, std::string_view delims)
-    -> std::vector<std::string_view> {
-  std::vector<std::string_view> output;
-  size_t first = 0;
-
-  while (first < string.size()) {
-    const auto second = string.find_first_of(delims, first);
-
-    if (first != second) {
-      output.emplace_back(string.substr(first, second - first));
-    }
-
-    if (second == std::string_view::npos) {
-      break;
-    }
-
-    first = second + 1;
+inline auto split(std::string_view str, char delim) -> std::vector<std::string_view> {
+  const auto pos = str.find_first_of(delim);
+  if (pos == std::string_view::npos) {
+    return {str};
+  } else {
+    return {str.substr(0, pos), str.substr(pos + 1)};
   }
+}
 
-  return output;
+inline auto trim(std::string_view str) -> std::string_view {
+  const auto first = str.find_first_not_of(' ');
+  if (std::string_view::npos == first) {
+    return str;
+  }
+  const auto last = str.find_last_not_of(' ');
+  return str.substr(first, (last - first + 1));
 }
 
 }  // namespace detail
 
-class help : public std::string_view {
- public:
-  using std::string_view::basic_string_view;
-};
+class help : public std::string_view {};
 
 class argument {
  public:
-  argument(const std::vector<std::string_view>& options) : options(options) {}
+  argument(const std::vector<std::string_view>& options) : names(options) {}
 
   auto required() const -> bool {
     return !default_value.has_value();
   }
 
   auto positional() const -> bool {
-    return !options.front().starts_with('-');
+    return !names.front().starts_with('-');
   }
 
   virtual auto boolean() const -> bool = 0;
@@ -73,13 +64,11 @@ class argument {
   std::any default_value;
   std::string default_value_repr;
   std::string_view help;
-  std::vector<std::string_view> options;
+  std::vector<std::string_view> names;
 };
 
-// sh::copy_constructible<T> && sh::parsable<T> && sh::formattable<T>
-// std::string???
 template <typename T>
-concept argument_type = true;
+concept argument_type = sh::copy_constructible<T> && sh::parsable<T> && sh::formattable<T>;
 
 template <argument_type T>
 class argument_t : public argument {
@@ -111,7 +100,7 @@ class argument_t : public argument {
         throw std::runtime_error("fak bool");
       }
     } else {
-      if (auto value = sh::parse<T>(data)) {
+      if (auto value = sh::parse<T>(detail::trim(data))) {
         this->value = std::move(*value);
       } else {
         throw std::runtime_error("fak parse");
@@ -122,13 +111,13 @@ class argument_t : public argument {
 
 class argument_parser {
  public:
-  template <argument_type T, std::convertible_to<std::string_view>... Options>
-    requires(sizeof...(Options) > 0)
-  auto add(Options&&... options) -> argument_t<T>& {
-    auto values = std::initializer_list<std::string_view>{options...};
-    auto unique = std::make_unique<argument_t<T>>(values);
+  template <argument_type T, std::convertible_to<std::string_view>... Names>
+    requires(sizeof...(Names) > 0)
+  auto add(Names&&... names) -> argument_t<T>& {
+    auto strings = std::initializer_list<std::string_view>{detail::trim(names)...};
+    auto pointer = std::make_unique<argument_t<T>>(strings);
 
-    return *reinterpret_cast<argument_t<T>*>(args_.emplace_back(std::move(unique)).get());
+    return *reinterpret_cast<argument_t<T>*>(args_.emplace_back(std::move(pointer)).get());
   }
 
   void parse(int argc, const char* const* argv) {
@@ -136,8 +125,8 @@ class argument_parser {
     int pos = 0;
 
     while (idx < argc) {
-      auto arg = std::string_view(argv[idx++]);
-      auto kvp = detail::split(arg, "=");  // Todo: split first
+      auto arg = detail::trim(argv[idx++]);
+      auto kvp = detail::split(arg, '=');  // Todo: split first
 
       if (auto value = find(kvp.front())) {
         if (kvp.size() == 2) {
@@ -166,24 +155,21 @@ class argument_parser {
   }
 
   template <argument_type T>
-  T get(std::string_view option) const {
-    for (auto& arg : args_) {
-      if (contains(arg->options, option)) {
-        if (arg->value.has_value()) {
-          return std::any_cast<T>(arg->value);
-        } else {
-          return std::any_cast<T>(arg->default_value);
-        }
+  auto get(std::string_view name) const -> T {
+    if (auto arg = find(detail::trim(name))) {
+      if (arg->value.has_value()) {
+        return std::any_cast<T>(arg->value);
+      } else {
+        return std::any_cast<T>(arg->default_value);
       }
     }
     return {};
   }
 
  private:
-  // Todo: better
-  argument* find(std::string_view option) {
-    for (auto& arg : args_) {
-      if (contains(arg->options, option)) {
+  auto find(std::string_view name) const -> argument* {
+    for (const auto& arg : args_) {
+      if (contains(arg->names, name)) {
         return arg.get();
       }
     }
@@ -192,8 +178,8 @@ class argument_parser {
 
   void validate() {
     for (const auto& arg : args_) {
-      if (arg->required() && !(arg->value.has_value() || arg->default_value.has_value())) {
-        throw std::runtime_error("fak validate");
+      if (arg->required() && !arg->value.has_value()) {
+        throw std::runtime_error(fmt::format("missing required argument: {}", arg->names.front()));
       }
     }
   }

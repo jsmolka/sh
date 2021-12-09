@@ -153,6 +153,16 @@ void tests_error() {
   };
 }
 
+void tests_trim() {
+  sh::test("argparse trim") = []() {
+    const char* argv[] = {"program.exe", "  -x  ", "  1  "};
+    sh::argument_parser parser;
+    parser.add<int>("-x  ");
+    parser.parse(argc(argv), argv);
+    expect(eq(parser.get<int>("-x"), 1));
+  };
+}
+
 }  // namespace
 
 void tests_argparse() {
@@ -162,4 +172,5 @@ void tests_argparse() {
   tests_string<std::string>();
   tests_string<std::string_view>();
   tests_error();
+  tests_trim();
 }
