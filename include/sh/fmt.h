@@ -12,6 +12,7 @@
 #include <sh/fmt/core.h>
 #include <sh/fmt/format.h>
 #include <sh/fmt/os.h>
+#include <sh/fmt/ostream.h>
 #include <sh/fmt/printf.h>
 #include <sh/fmt/ranges.h>
 #include <sh/fmt/xchar.h>
