@@ -43,6 +43,16 @@ inline auto trim(std::string_view str) -> std::string_view {
   return str.substr(first, (last - first + 1));
 }
 
+template <typename T>
+inline constexpr bool is_optional_v = is_specialization_v<T, std::optional>;
+
+template <typename T>
+concept type = (sh::value_constructible<T> && sh::copy_constructible<T> && sh::parsable<T> &&
+                sh::formattable<T>);
+
+template <typename T>
+concept optional_type = is_optional_v<T> && type<typename T::value_type>;
+
 }  // namespace detail
 
 class help : public std::string_view {};
@@ -70,11 +80,8 @@ class argument {
   std::vector<std::string_view> names;
 };
 
-// sh::value_constructible<T> && sh::copy_constructible<T> && sh::parsable<T> && sh::formattable<T>
 template <typename T>
-concept argument_type = true;
-
-template <argument_type T>
+  requires detail::type<T> || detail::optional_type<T>
 class argument_t : public argument {
  public:
   using argument::argument;
@@ -118,7 +125,7 @@ class argument_t : public argument {
   }
 };
 
-template <typename T>
+template <detail::type T>
 class argument_t<std::optional<T>> : public argument {
  public:
   using argument::argument;
@@ -164,8 +171,8 @@ class argument_t<std::optional<T>> : public argument {
 
 class argument_parser {
  public:
-  template <argument_type T, std::convertible_to<std::string_view>... Names>
-    requires(sizeof...(Names) > 0)
+  template <typename T, std::convertible_to<std::string_view>... Names>
+    requires(sizeof...(Names) > 0 && (detail::type<T> || detail::optional_type<T>))
   auto add(Names&&... names) -> argument_t<T>& {
     auto strings = std::initializer_list<std::string_view>{detail::trim(names)...};
     auto pointer = std::make_unique<argument_t<T>>(strings);
@@ -198,7 +205,8 @@ class argument_parser {
     validate();
   }
 
-  template <argument_type T>
+  template <typename T>
+    requires detail::type<T> || detail::optional_type<T>
   auto get(std::string_view name) const -> T {
     if (auto argument = find(name)) {
       if (argument->value.has_value()) {
