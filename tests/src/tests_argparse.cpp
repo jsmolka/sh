@@ -171,6 +171,26 @@ void tests_trim() {
   };
 }
 
+void tests_optional() {
+  sh::test("argparse optional") = []() {
+    const char* argv[] = {"program.exe", "-b", "1", "-c", "2"};
+    sh::argument_parser parser;
+    parser.add<std::optional<int>>("-a");
+    parser.add<std::optional<int>>("-b");
+    parser.add<std::optional<bool>>("-c");
+    parser.add<std::optional<int>>("d");
+    parser.add<std::optional<int>>("e");
+    parser.add<std::optional<int>>("f") | 3;
+    parser.parse(argc(argv), argv);
+    expect(!parser.get<std::optional<int>>("-a").has_value());
+    expect(eq(*parser.get<std::optional<int>>("-b"), 1));
+    expect(eq(*parser.get<std::optional<bool>>("-c"), true));
+    expect(eq(*parser.get<std::optional<int>>("d"), 2));
+    expect(!parser.get<std::optional<int>>("e").has_value());
+    expect(eq(*parser.get<std::optional<int>>("f"), 3));
+  };
+}
+
 }  // namespace
 
 void tests_argparse() {
@@ -181,4 +201,5 @@ void tests_argparse() {
   tests_string<std::string_view>();
   tests_error();
   tests_trim();
+  tests_optional();
 }

@@ -2,6 +2,7 @@
 
 #include <any>
 #include <memory>
+#include <optional>
 #include <string_view>
 #include <vector>
 
@@ -9,6 +10,7 @@
 #include <sh/fmt.h>
 #include <sh/parse.h>
 #include <sh/ranges.h>
+#include <sh/traits.h>
 
 namespace sh {
 
@@ -50,7 +52,7 @@ class argument {
   argument(const std::vector<std::string_view>& options) : names(options) {}
 
   auto required() const -> bool {
-    return !default_value.has_value();
+    return !(optional() || default_value.has_value());
   }
 
   auto positional() const -> bool {
@@ -58,6 +60,7 @@ class argument {
   }
 
   virtual auto boolean() const -> bool = 0;
+  virtual auto optional() const -> bool = 0;
   virtual void parse(std::string_view) = 0;
 
   std::any value;
@@ -67,8 +70,9 @@ class argument {
   std::vector<std::string_view> names;
 };
 
+// sh::value_constructible<T> && sh::copy_constructible<T> && sh::parsable<T> && sh::formattable<T>
 template <typename T>
-concept argument_type = sh::copy_constructible<T> && sh::parsable<T> && sh::formattable<T>;
+concept argument_type = true;
 
 template <argument_type T>
 class argument_t : public argument {
@@ -88,8 +92,12 @@ class argument_t : public argument {
     return *this;
   }
 
-  auto boolean() const -> bool {
+  auto boolean() const -> bool final {
     return std::same_as<T, bool>;
+  }
+
+  auto optional() const -> bool final {
+    return false;
   }
 
   void parse(std::string_view data) {
@@ -110,6 +118,50 @@ class argument_t : public argument {
   }
 };
 
+template <typename T>
+class argument_t<std::optional<T>> : public argument {
+ public:
+  using argument::argument;
+
+  auto operator|(sh::help help) -> argument_t<std::optional<T>>& {
+    this->help = help;
+    return *this;
+  }
+
+  template <std::convertible_to<T> U>
+  auto operator|(const U& data) -> argument_t<std::optional<T>>& {
+    const T value(data);
+    default_value_repr = detail::repr(value);
+    default_value = std::optional(std::move(value));
+    return *this;
+  }
+
+  auto boolean() const -> bool final {
+    return std::same_as<T, bool>;
+  }
+
+  auto optional() const -> bool final {
+    return true;
+  }
+
+  void parse(std::string_view data) {
+    if (data == std::string_view()) {
+      if constexpr (std::same_as<T, bool>) {
+        value = std::optional(true);
+      } else {
+        throw std::runtime_error("fak bool");
+      }
+    } else {
+      data = detail::trim(data);
+      if (const auto value = sh::parse<T>(data)) {
+        this->value = value;
+      } else {
+        throw std::runtime_error(fmt::format("cannot parse: {}", data));
+      }
+    }
+  }
+};
+
 class argument_parser {
  public:
   template <argument_type T, std::convertible_to<std::string_view>... Names>
@@ -118,7 +170,7 @@ class argument_parser {
     auto strings = std::initializer_list<std::string_view>{detail::trim(names)...};
     auto pointer = std::make_unique<argument_t<T>>(strings);
 
-    return *reinterpret_cast<argument_t<T>*>(args_.emplace_back(std::move(pointer)).get());
+    return *reinterpret_cast<argument_t<T>*>(arguments_.emplace_back(std::move(pointer)).get());
   }
 
   void parse(int argc, const char* const* argv) {
@@ -148,11 +200,11 @@ class argument_parser {
 
   template <argument_type T>
   auto get(std::string_view name) const -> T {
-    if (auto arg = find(name)) {
-      if (arg->value.has_value()) {
-        return std::any_cast<T>(arg->value);
-      } else {
-        return std::any_cast<T>(arg->default_value);
+    if (auto argument = find(name)) {
+      if (argument->value.has_value()) {
+        return std::any_cast<T>(argument->value);
+      } else if (argument->default_value.has_value()) {
+        return std::any_cast<T>(argument->default_value);
       }
     }
     return {};
@@ -161,32 +213,33 @@ class argument_parser {
  private:
   auto find(std::string_view name) const -> argument* {
     name = detail::trim(name);
-    for (const auto& arg : args_) {
-      if (contains(arg->names, name)) {
-        return arg.get();
+    for (const auto& argument : arguments_) {
+      if (contains(argument->names, name)) {
+        return argument.get();
       }
     }
     return nullptr;
   }
 
   auto find(std::size_t position) const -> argument* {
-    for (const auto& arg : args_) {
-      if (arg->positional() && position-- == 0) {
-        return arg.get();
+    for (const auto& argument : arguments_) {
+      if (argument->positional() && position-- == 0) {
+        return argument.get();
       }
     }
     return nullptr;
   }
 
   void validate() {
-    for (const auto& arg : args_) {
-      if (arg->required() && !arg->value.has_value()) {
-        throw std::runtime_error(fmt::format("missing required argument: {}", arg->names.front()));
+    for (const auto& argument : arguments_) {
+      if (argument->required() && !argument->value.has_value()) {
+        throw std::runtime_error(
+            fmt::format("missing required argument: {}", argument->names.front()));
       }
     }
   }
 
-  std::vector<std::unique_ptr<argument>> args_;
+  std::vector<std::unique_ptr<argument>> arguments_;
 };
 
 }  // namespace sh

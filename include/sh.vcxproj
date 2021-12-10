@@ -23,6 +23,7 @@
     <ClInclude Include="sh\parse.h" />
     <ClInclude Include="sh\ranges.h" />
     <ClInclude Include="sh\stack.h" />
+    <ClInclude Include="sh\traits.h" />
     <ClInclude Include="sh\utility.h" />
     <ClInclude Include="sh\vector.h" />
     <ClInclude Include="sh\windows.h" />
