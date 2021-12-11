@@ -199,6 +199,7 @@ void tests_argparse() {
   tests_double();
   tests_string<std::string>();
   tests_string<std::string_view>();
+  tests_string<std::filesystem::path>();
   tests_error();
   tests_trim();
   tests_optional();

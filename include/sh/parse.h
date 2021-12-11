@@ -33,7 +33,7 @@ auto parse_number(std::string_view data, Args&&... args) -> std::optional<T> {
 
 }  // namespace
 
-template <sh::never T>
+template <typename T>
 auto parse(std::string_view data) -> std::optional<T> {
   return std::nullopt;
 }

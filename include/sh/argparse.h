@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <sh/concepts.h>
+#include <sh/filesystem.h>
 #include <sh/fmt.h>
 #include <sh/parse.h>
 #include <sh/ranges.h>
@@ -14,12 +15,14 @@
 
 namespace sh {
 
-namespace detail {
+namespace {
 
-template <sh::formattable T>
+template <formattable T>
 auto repr(const T& value) -> std::string {
   if constexpr (std::convertible_to<T, std::string_view>) {
     return fmt::format("\"{}\"", std::string_view{value});
+  } else if constexpr (std::same_as<T, filesystem::path>) {
+    return fmt::format("\"{}\"", value);
   } else {
     return fmt::format("{}", value);
   }
@@ -44,16 +47,13 @@ inline auto trim(std::string_view str) -> std::string_view {
 }
 
 template <typename T>
-inline constexpr bool is_optional_v = is_specialization_v<T, std::optional>;
+concept convertible = sh::parsable<T> && sh::formattable<T>;
 
 template <typename T>
-concept type = (sh::value_constructible<T> && sh::copy_constructible<T> && sh::parsable<T> &&
-                sh::formattable<T>);
+concept argument_type = (convertible<T> || (is_specialization_v<T, std::optional> &&
+                                            convertible<typename T::value_type>));
 
-template <typename T>
-concept optional_type = is_optional_v<T> && type<typename T::value_type>;
-
-}  // namespace detail
+}  // namespace
 
 class help : public std::string_view {};
 
@@ -80,8 +80,7 @@ class argument {
   std::vector<std::string_view> names;
 };
 
-template <typename T>
-  requires detail::type<T> || detail::optional_type<T>
+template <argument_type T>
 class argument_t : public argument {
  public:
   using argument::argument;
@@ -94,7 +93,7 @@ class argument_t : public argument {
   template <std::convertible_to<T> U>
   auto operator|(const U& data) -> argument_t<T>& {
     const T value(data);
-    default_value_repr = detail::repr(value);
+    default_value_repr = repr(value);
     default_value = std::move(value);
     return *this;
   }
@@ -115,7 +114,7 @@ class argument_t : public argument {
         throw std::runtime_error("fak bool");
       }
     } else {
-      data = detail::trim(data);
+      data = trim(data);
       if (const auto value = sh::parse<T>(data)) {
         this->value = std::move(*value);
       } else {
@@ -125,7 +124,7 @@ class argument_t : public argument {
   }
 };
 
-template <detail::type T>
+template <convertible T>
 class argument_t<std::optional<T>> : public argument {
  public:
   using argument::argument;
@@ -138,7 +137,7 @@ class argument_t<std::optional<T>> : public argument {
   template <std::convertible_to<T> U>
   auto operator|(const U& data) -> argument_t<std::optional<T>>& {
     const T value(data);
-    default_value_repr = detail::repr(value);
+    default_value_repr = repr(value);
     default_value = std::optional(std::move(value));
     return *this;
   }
@@ -159,7 +158,7 @@ class argument_t<std::optional<T>> : public argument {
         throw std::runtime_error("fak bool");
       }
     } else {
-      data = detail::trim(data);
+      data = trim(data);
       if (const auto value = sh::parse<T>(data)) {
         this->value = value;
       } else {
@@ -171,10 +170,10 @@ class argument_t<std::optional<T>> : public argument {
 
 class argument_parser {
  public:
-  template <typename T, std::convertible_to<std::string_view>... Names>
-    requires(sizeof...(Names) > 0 && (detail::type<T> || detail::optional_type<T>))
+  template <argument_type T, std::convertible_to<std::string_view>... Names>
+    requires(sizeof...(Names) > 0)
   auto add(Names&&... names) -> argument_t<T>& {
-    auto strings = std::initializer_list<std::string_view>{detail::trim(names)...};
+    auto strings = std::initializer_list<std::string_view>{trim(names)...};
     auto pointer = std::make_unique<argument_t<T>>(strings);
 
     return *reinterpret_cast<argument_t<T>*>(arguments_.emplace_back(std::move(pointer)).get());
@@ -184,8 +183,8 @@ class argument_parser {
     auto index = 1;
     auto positional = 0;
     while (index < argc) {
-      const auto data = detail::trim(argv[index++]);
-      const auto pair = detail::split(data, '=');
+      const auto data = trim(argv[index++]);
+      const auto pair = split(data, '=');
       if (const auto argument = find(pair.front())) {
         if (pair.size() == 2) {
           argument->parse(pair.back());
@@ -205,8 +204,7 @@ class argument_parser {
     validate();
   }
 
-  template <typename T>
-    requires detail::type<T> || detail::optional_type<T>
+  template <argument_type T>
   auto get(std::string_view name) const -> T {
     if (auto argument = find(name)) {
       if (argument->value.has_value()) {
@@ -220,7 +218,7 @@ class argument_parser {
 
  private:
   auto find(std::string_view name) const -> argument* {
-    name = detail::trim(name);
+    name = trim(name);
     for (const auto& argument : arguments_) {
       if (contains(argument->names, name)) {
         return argument.get();
