@@ -5,24 +5,26 @@
 #include <sh/fmt.h>
 #include <sh/parse.h>
 
-namespace sh::filesystem {
+namespace sh {
+
+namespace filesystem {
 
 using namespace std::filesystem;
 
-}  // namespace sh::filesystem
-
-namespace fmt {
+}  // namespace filesystem
 
 template <>
-struct formatter<sh::filesystem::path> : formatter<std::string> {
-  auto format(const sh::filesystem::path& path, format_context& ctx) {
-    return formatter<std::string>::format(path.string(), ctx);
+struct parser<filesystem::path> {
+  auto parse(std::string_view data) -> std::optional<filesystem::path> {
+    return filesystem::u8path(data).make_preferred();
   }
 };
 
-}  // namespace fmt
+}  // namespace sh
 
 template <>
-inline auto sh::parse(std::string_view data) -> std::optional<sh::filesystem::path> {
-  return sh::filesystem::u8path(data).make_preferred();
-}
+struct fmt::formatter<sh::filesystem::path> : fmt::formatter<std::string> {
+  auto format(const sh::filesystem::path& path, fmt::format_context& ctx) {
+    return fmt::formatter<std::string>::format(path.string(), ctx);
+  }
+};

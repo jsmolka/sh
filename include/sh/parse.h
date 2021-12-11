@@ -8,6 +8,7 @@
 
 #include <sh/concepts.h>
 #include <sh/fast_float/fast_float.h>
+#include <sh/int.h>
 
 namespace std {
 
@@ -17,85 +18,116 @@ using fast_float::from_chars;
 
 namespace sh {
 
-namespace {
-
-template <typename T, typename... Args>
-auto parse_number(std::string_view data, Args&&... args) -> std::optional<T> {
-  T value{};
-  const auto beg = data.data();
-  const auto end = data.data() + data.size();
-  const auto& [ptr, ec] = std::from_chars(beg, end, value, std::forward<Args>(args)...);
-  if (ec == std::errc::result_out_of_range || ptr != end) {
-    return std::nullopt;
-  }
-  return value;
-}
-
-}  // namespace
+namespace detail {
 
 template <typename T>
-auto parse(std::string_view data) -> std::optional<T> {
-  return std::nullopt;
-}
+  requires std::integral<T> || any_of<T, float, double>
+struct number_parser {
+  template <typename... Args>
+  auto parse(std::string_view data, Args&&... args) -> std::optional<T> {
+    T value{};
+    const auto beg = data.data();
+    const auto end = data.data() + data.size();
+    const auto& [ptr, ec] = std::from_chars(beg, end, value, std::forward<Args>(args)...);
+    if (ec == std::errc::result_out_of_range || ptr != end) {
+      return std::nullopt;
+    }
+    return value;
+  }
+};
 
-template <std::integral Integral>
-auto parse(std::string_view data) -> std::optional<Integral> {
-  const auto negative = data.starts_with('-');
-  const auto base = [&]() -> int {
-    const auto index = std::size_t(negative);
-    if (index + 1 < data.size() && data[index] == '0') {
-      switch (data[index + 1]) {
-        case 'b':
-        case 'B':
-          return 2;
-        case 'x':
-        case 'X':
-          return 16;
+template <std::integral T>
+struct int_parser : number_parser<T> {
+  auto parse(std::string_view data) -> std::optional<T> {
+    const auto negative = data.starts_with('-');
+    const auto base = [&]() -> int {
+      const auto index = std::size_t(negative);
+      if (index + 1 < data.size() && data[index] == '0') {
+        switch (data[index + 1]) {
+          case 'b':
+          case 'B':
+            return 2;
+          case 'x':
+          case 'X':
+            return 16;
+        }
+      }
+      return 10;
+    }();
+
+    auto sign = const_cast<char*>(data.data());
+    auto temp = const_cast<char*>(data.data()) + 2;
+    if (base != 10) {
+      data.remove_prefix(2);
+      if (negative) {
+        std::swap(*sign, *temp);
       }
     }
-    return 10;
-  }();
 
-  auto sign = const_cast<char*>(data.data());
-  auto temp = const_cast<char*>(data.data()) + 2;
-  if (base != 10) {
-    data.remove_prefix(2);
-    if (negative) {
+    const auto value = number_parser<T>::parse(data, base);
+    if (base != 10 && negative) {
       std::swap(*sign, *temp);
     }
+    return value;
   }
+};
 
-  const auto value = parse_number<Integral>(data, base);
-  if (base != 10 && negative) {
-    std::swap(*sign, *temp);
-  }
-  return value;
-}
-
-template <>
-inline auto parse(std::string_view data) -> std::optional<bool> {
-  if (data == "1" || data == "true") {
-    return true;
-  } else if (data == "0" || data == "false") {
-    return false;
-  } else {
-    return std::nullopt;
-  }
-}
-
-template <sh::any_of<float, double> Float>
-auto parse(std::string_view data) -> std::optional<Float> {
-  return parse_number<Float>(data);
-}
-
-template <sh::any_of<std::string, std::string_view> String>
-auto parse(std::string_view data) -> std::optional<String> {
-  return String(data.begin(), data.end());
-}
+}  // namespace detail
 
 template <typename T>
-concept parsable = requires() {
-  { parse<T>(std::string_view{}) } -> std::same_as<std::optional<T>>;
+struct parser {
+  ~parser() = delete;
 };
+
+// clang-format off
+template <> struct parser<u8>  : detail::int_parser<u8>  {}; 
+template <> struct parser<u16> : detail::int_parser<u16> {};
+template <> struct parser<u32> : detail::int_parser<u32> {};
+template <> struct parser<u64> : detail::int_parser<u64> {};
+template <> struct parser<s8>  : detail::int_parser<s8>  {}; 
+template <> struct parser<s16> : detail::int_parser<s16> {};
+template <> struct parser<s32> : detail::int_parser<s32> {};
+template <> struct parser<s64> : detail::int_parser<s64> {};
+// clang-format on
+
+template <>
+struct parser<bool> {
+  auto parse(std::string_view data) -> std::optional<bool> {
+    if (data == "1" || data == "true") {
+      return true;
+    } else if (data == "0" || data == "false") {
+      return false;
+    } else {
+      return std::nullopt;
+    }
+  }
+};
+
+// clang-format off
+template<> struct parser<float>  : detail::number_parser<float>  {};
+template<> struct parser<double> : detail::number_parser<double> {};
+// clang-format on
+
+template <>
+struct parser<std::string> {
+  auto parse(std::string_view data) -> std::optional<std::string> {
+    return std::string(data);
+  }
+};
+
+template <>
+struct parser<std::string_view> {
+  auto parse(std::string_view data) -> std::optional<std::string_view> {
+    return data;
+  }
+};
+
+template <typename T>
+concept parsable = std::destructible<parser<T>>;
+
+template <parsable T>
+auto parse(std::string_view data) -> std::optional<T> {
+  return parser<T>{}.parse(data);
+}
 
 }  // namespace sh
