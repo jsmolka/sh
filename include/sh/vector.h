@@ -301,7 +301,7 @@ class vector_base {
     resize_impl(size, value);
   }
 
-  void resize(size_type size) requires sh::value_constructible<value_type> {
+  void resize(size_type size) requires std::default_initializable<value_type> {
     resize_impl(size);
   }
 
@@ -340,7 +340,7 @@ class vector_base {
     head_ = std::uninitialized_fill_n(begin(), count, value);
   }
 
-  void construct(size_type count) requires sh::value_constructible<T> {
+  void construct(size_type count) requires std::default_initializable<T> {
     allocate(count);
     head_ = std::uninitialized_value_construct_n(begin(), count);
   }
@@ -480,7 +480,7 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
     construct(count, value);
   }
 
-  explicit vector(size_type count) requires sh::value_constructible<T> : vector() {
+  explicit vector(size_type count) requires std::default_initializable<T> : vector() {
     construct(count);
   }
 
@@ -628,7 +628,7 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
     construct(count, value);
   }
 
-  explicit vector(size_type count) requires sh::value_constructible<T> {
+  explicit vector(size_type count) requires std::default_initializable<T> {
     construct(count);
   }
 

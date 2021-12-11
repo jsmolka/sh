@@ -17,16 +17,13 @@ concept move_constructible = std::constructible_from<T, T&&>;
 template <typename T>
 concept move_assignable = std::assignable_from<T&, T&&>;
 
-template <typename T>
-concept value_constructible = std::constructible_from<T>;
-
 template <typename T, typename U>
 concept different_from = !std::same_as<T, U>;
 
 template <typename T, typename... Ts>
 concept any_of = std::disjunction_v<std::is_same<T, Ts>...>;
 
-template <typename T>
-concept never = false;
+template <typename... Ts>
+concept not_empty = sizeof...(Ts) > 0;
 
 }  // namespace sh

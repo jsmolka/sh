@@ -2,7 +2,6 @@
 
 #include <any>
 #include <memory>
-#include <optional>
 #include <string_view>
 #include <vector>
 
@@ -11,7 +10,6 @@
 #include <sh/fmt.h>
 #include <sh/parse.h>
 #include <sh/ranges.h>
-#include <sh/traits.h>
 
 namespace sh {
 
@@ -47,19 +45,28 @@ inline auto trim(std::string_view str) -> std::string_view {
 }
 
 template <typename T>
-concept convertible = sh::parsable<T> && sh::formattable<T>;
+struct value_type {
+  using type = T;
+};
 
 template <typename T>
-concept argument_type = (convertible<T> || (is_specialization_v<T, std::optional> &&
-                                            convertible<typename T::value_type>));
+struct value_type<std::optional<T>> {
+  using type = T;
+};
+
+template <typename T>
+using value_type_t = typename value_type<T>::type;
+
+template <typename T>
+concept serializable = parsable<value_type_t<T>> && formattable<value_type_t<T>>;
 
 }  // namespace
 
 class help : public std::string_view {};
 
-class argument {
+class basic_argument {
  public:
-  argument(const std::vector<std::string_view>& options) : names(options) {}
+  basic_argument(const std::vector<std::string_view>& options) : names(options) {}
 
   auto required() const -> bool {
     return !(optional() || default_value.has_value());
@@ -80,29 +87,29 @@ class argument {
   std::vector<std::string_view> names;
 };
 
-template <argument_type T>
-class argument_t : public argument {
+template <serializable T>
+class argument final : public basic_argument {
  public:
-  using argument::argument;
+  using basic_argument::basic_argument;
 
-  auto operator|(sh::help help) -> argument_t<T>& {
+  auto operator|(sh::help help) -> argument<T>& {
     this->help = help;
     return *this;
   }
 
   template <std::convertible_to<T> U>
-  auto operator|(const U& data) -> argument_t<T>& {
+  auto operator|(const U& data) -> argument<T>& {
     const T value(data);
     default_value_repr = repr(value);
-    default_value = std::move(value);
+    default_value = value;
     return *this;
   }
 
-  auto boolean() const -> bool final {
+  auto boolean() const -> bool {
     return std::same_as<T, bool>;
   }
 
-  auto optional() const -> bool final {
+  auto optional() const -> bool {
     return false;
   }
 
@@ -111,12 +118,12 @@ class argument_t : public argument {
       if constexpr (std::same_as<T, bool>) {
         value = true;
       } else {
-        throw std::runtime_error("fak bool");
+        throw std::runtime_error(fmt::format("expected data for argument: {}", names.front()));
       }
     } else {
       data = trim(data);
-      if (const auto value = sh::parse<T>(data)) {
-        this->value = std::move(*value);
+      if (const auto result = sh::parse<T>(data)) {
+        value = *result;
       } else {
         throw std::runtime_error(fmt::format("cannot parse: {}", data));
       }
@@ -124,29 +131,29 @@ class argument_t : public argument {
   }
 };
 
-template <convertible T>
-class argument_t<std::optional<T>> : public argument {
+template <typename T>
+class argument<std::optional<T>> final : public basic_argument {
  public:
-  using argument::argument;
+  using basic_argument::basic_argument;
 
-  auto operator|(sh::help help) -> argument_t<std::optional<T>>& {
+  auto operator|(sh::help help) -> argument<std::optional<T>>& {
     this->help = help;
     return *this;
   }
 
   template <std::convertible_to<T> U>
-  auto operator|(const U& data) -> argument_t<std::optional<T>>& {
+  auto operator|(const U& data) -> argument<std::optional<T>>& {
     const T value(data);
     default_value_repr = repr(value);
-    default_value = std::optional(std::move(value));
+    default_value = std::optional(value);
     return *this;
   }
 
-  auto boolean() const -> bool final {
+  auto boolean() const -> bool {
     return std::same_as<T, bool>;
   }
 
-  auto optional() const -> bool final {
+  auto optional() const -> bool {
     return true;
   }
 
@@ -155,14 +162,14 @@ class argument_t<std::optional<T>> : public argument {
       if constexpr (std::same_as<T, bool>) {
         value = std::optional(true);
       } else {
-        throw std::runtime_error("fak bool");
+        throw std::runtime_error(fmt::format("expected data for argument: {}", names.front()));
       }
     } else {
       data = trim(data);
-      if (const auto value = sh::parse<T>(data)) {
-        this->value = value;
+      if (const auto result = sh::parse<T>(data)) {
+        value = result;
       } else {
-        throw std::runtime_error(fmt::format("cannot parse: {}", data));
+        throw std::runtime_error(fmt::format("expected data for argument: {}", names.front()));
       }
     }
   }
@@ -170,13 +177,12 @@ class argument_t<std::optional<T>> : public argument {
 
 class argument_parser {
  public:
-  template <argument_type T, std::convertible_to<std::string_view>... Names>
-    requires(sizeof...(Names) > 0)
-  auto add(Names&&... names) -> argument_t<T>& {
-    auto strings = std::initializer_list<std::string_view>{trim(names)...};
-    auto pointer = std::make_unique<argument_t<T>>(strings);
-
-    return *reinterpret_cast<argument_t<T>*>(arguments_.emplace_back(std::move(pointer)).get());
+  template <serializable T, std::convertible_to<std::string_view>... Names>
+    requires not_empty<Names...>
+  auto add(Names&&... names) -> argument<T>& {
+    const auto views = {trim(names)...};
+    arguments_.push_back(std::make_unique<argument<T>>(views));
+    return *static_cast<argument<T>*>(arguments_.back().get());
   }
 
   void parse(int argc, const char* const* argv) {
@@ -204,9 +210,9 @@ class argument_parser {
     validate();
   }
 
-  template <argument_type T>
+  template <serializable T>
   auto get(std::string_view name) const -> T {
-    if (auto argument = find(name)) {
+    if (const auto argument = find(name)) {
       if (argument->value.has_value()) {
         return std::any_cast<T>(argument->value);
       } else if (argument->default_value.has_value()) {
@@ -217,7 +223,7 @@ class argument_parser {
   }
 
  private:
-  auto find(std::string_view name) const -> argument* {
+  auto find(std::string_view name) const -> basic_argument* {
     name = trim(name);
     for (const auto& argument : arguments_) {
       if (contains(argument->names, name)) {
@@ -227,7 +233,7 @@ class argument_parser {
     return nullptr;
   }
 
-  auto find(std::size_t position) const -> argument* {
+  auto find(std::size_t position) const -> basic_argument* {
     for (const auto& argument : arguments_) {
       if (argument->positional() && position-- == 0) {
         return argument.get();
@@ -245,7 +251,7 @@ class argument_parser {
     }
   }
 
-  std::vector<std::unique_ptr<argument>> arguments_;
+  std::vector<std::unique_ptr<basic_argument>> arguments_;
 };
 
 }  // namespace sh

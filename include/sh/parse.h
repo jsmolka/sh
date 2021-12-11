@@ -21,7 +21,6 @@ namespace sh {
 namespace detail {
 
 template <typename T>
-  requires std::integral<T> || any_of<T, float, double>
 struct number_parser {
   template <typename... Args>
   auto parse(std::string_view data, Args&&... args) -> std::optional<T> {
@@ -36,7 +35,7 @@ struct number_parser {
   }
 };
 
-template <std::integral T>
+template <typename T>
 struct int_parser : number_parser<T> {
   auto parse(std::string_view data) -> std::optional<T> {
     const auto negative = data.starts_with('-');
@@ -104,8 +103,8 @@ struct parser<bool> {
 };
 
 // clang-format off
-template<> struct parser<float>  : detail::number_parser<float>  {};
-template<> struct parser<double> : detail::number_parser<double> {};
+template <> struct parser<float>  : detail::number_parser<float>  {};
+template <> struct parser<double> : detail::number_parser<double> {};
 // clang-format on
 
 template <>

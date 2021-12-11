@@ -61,7 +61,7 @@ struct tests_constructor : public tests<T, N> {
     };
 
     test("vector(size_type)") = []() {
-      if constexpr (sh::value_constructible<T>) {
+      if constexpr (std::default_initializable<T>) {
         vector vec1(3);
         expect(eq(vec1.size(), 3));
         expect(eq(vec1.capacity(), capacity(3)));
@@ -761,7 +761,7 @@ struct tests_resize : tests<T, N> {
     };
 
     test("resize(size_type)") = []() {
-      if constexpr (sh::value_constructible<T>) {
+      if constexpr (std::default_initializable<T>) {
         vector vec1{};
         vec1.resize(5);
         expect(eq(vec1.size(), 5));
