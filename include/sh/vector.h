@@ -37,8 +37,7 @@ class vector_base {
     destruct();
   }
 
-  void assign(size_type count,
-              const value_type& value) requires sh::copy_constructible<value_type> {
+  void assign(size_type count, const value_type& value) requires copy_constructible<value_type> {
     std::destroy(begin(), end());
     uninitialized_reserve(count);
     head_ = std::uninitialized_fill_n(begin(), count, value);
@@ -54,7 +53,7 @@ class vector_base {
     head_ = std::uninitialized_copy(first, last, begin());
   }
 
-  void assign(std::initializer_list<value_type> init) requires sh::copy_constructible<value_type> {
+  void assign(std::initializer_list<value_type> init) requires copy_constructible<value_type> {
     assign(init.begin(), init.end());
   }
 
@@ -174,7 +173,7 @@ class vector_base {
   }
 
   template <typename... Args>
-    requires sh::move_constructible<value_type> && sh::move_assignable<value_type> &&
+    requires move_constructible<value_type> && move_assignable<value_type> &&
         std::constructible_from<value_type, Args...>
   auto emplace(const_iterator pos, Args&&... args) -> iterator {
     assert(pos >= begin() && pos <= end());
@@ -195,19 +194,19 @@ class vector_base {
   }
 
   auto insert(const_iterator pos, const value_type& value)
-      -> iterator requires sh::move_constructible<value_type> && sh::move_assignable<value_type> &&
-      std::copy_constructible<value_type> {
+      -> iterator requires move_constructible<value_type> &&
+      move_assignable<value_type> && std::copy_constructible<value_type> {
     return emplace(pos, value);
   }
 
   auto insert(const_iterator pos, value_type&& value)
-      -> iterator requires std::move_constructible<value_type> && sh::move_assignable<value_type> {
+      -> iterator requires std::move_constructible<value_type> && move_assignable<value_type> {
     return emplace(pos, std::move(value));
   }
 
   auto insert(const_iterator pos, size_type count, const value_type& value)
-      -> iterator requires std::move_constructible<value_type> && sh::move_assignable<value_type> &&
-      sh::copy_constructible<value_type> {
+      -> iterator requires std::move_constructible<value_type> && move_assignable<value_type> &&
+      copy_constructible<value_type> {
     assert(pos >= begin() && pos <= end());
     if (count == 0) [[unlikely]] {
       return const_cast<iterator>(pos);
@@ -235,8 +234,8 @@ class vector_base {
 
   template <std::random_access_iterator I>
   auto insert(const_iterator pos, I first, I last)
-      -> iterator requires std::move_constructible<value_type> && sh::move_assignable<value_type> &&
-      sh::copy_constructible<value_type> {
+      -> iterator requires std::move_constructible<value_type> && move_assignable<value_type> &&
+      copy_constructible<value_type> {
     assert(pos >= begin() && pos <= end());
     if (first == last) [[unlikely]] {
       return const_cast<iterator>(pos);
@@ -266,12 +265,12 @@ class vector_base {
   }
 
   auto insert(const_iterator pos, std::initializer_list<value_type> init)
-      -> iterator requires std::move_constructible<value_type> && sh::move_assignable<value_type> &&
-      sh::copy_constructible<value_type> {
+      -> iterator requires std::move_constructible<value_type> && move_assignable<value_type> &&
+      copy_constructible<value_type> {
     return insert(pos, init.begin(), init.end());
   }
 
-  auto erase(const_iterator pos) -> iterator requires sh::move_assignable<value_type> {
+  auto erase(const_iterator pos) -> iterator requires move_assignable<value_type> {
     assert(pos >= begin() && pos < end());
     const auto where = const_cast<iterator>(pos);
     std::move(where + 1, end(), where);
@@ -279,8 +278,7 @@ class vector_base {
     return where;
   }
 
-  auto erase(const_iterator pos, size_type count)
-      -> iterator requires sh::move_assignable<value_type> {
+  auto erase(const_iterator pos, size_type count) -> iterator requires move_assignable<value_type> {
     const auto where = const_cast<iterator>(pos);
     if (count) {
       assert(pos >= begin() && pos < end());
@@ -293,11 +291,11 @@ class vector_base {
   }
 
   auto erase(const_iterator first, const_iterator last)
-      -> iterator requires sh::move_assignable<value_type> {
+      -> iterator requires move_assignable<value_type> {
     return erase(first, static_cast<size_type>(std::distance(first, last)));
   }
 
-  void resize(size_type size, const value_type& value) requires sh::copy_constructible<value_type> {
+  void resize(size_type size, const value_type& value) requires copy_constructible<value_type> {
     resize_impl(size, value);
   }
 
@@ -312,11 +310,11 @@ class vector_base {
     return *std::construct_at(head_++, std::forward<Args>(args)...);
   }
 
-  void push_back(const value_type& value) requires sh::copy_constructible<value_type> {
+  void push_back(const value_type& value) requires copy_constructible<value_type> {
     (void)emplace_back(value);
   }
 
-  void push_back(value_type&& value) requires sh::move_constructible<value_type> {
+  void push_back(value_type&& value) requires move_constructible<value_type> {
     (void)emplace_back(std::forward<value_type>(value));
   }
 
@@ -334,8 +332,7 @@ class vector_base {
  protected:
   using storage = std::aligned_storage_t<sizeof(value_type), alignof(value_type)>;
 
-  void construct(size_type count,
-                 const value_type& value) requires sh::copy_constructible<value_type> {
+  void construct(size_type count, const value_type& value) requires copy_constructible<value_type> {
     allocate(count);
     head_ = std::uninitialized_fill_n(begin(), count, value);
   }
@@ -431,7 +428,7 @@ class vector_base {
 
     if (data_) {
       try {
-        if constexpr (sh::move_constructible<value_type>) {
+        if constexpr (move_constructible<value_type>) {
           head_new = std::uninitialized_move(begin(), end(), data_new);
         } else {
           head_new = std::uninitialized_copy(begin(), end(), data_new);
@@ -454,7 +451,7 @@ class vector_base {
 }  // namespace detail
 
 template <typename T, std::size_t kSize = 0>
-  requires sh::move_constructible<T> || sh::copy_constructible<T>
+  requires move_constructible<T> || copy_constructible<T>
 class vector : private detail::vector_base<T, vector<T, kSize>> {
  private:
   friend class detail::vector_base<T, vector<T, kSize>>;
@@ -475,7 +472,7 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
 
   vector() noexcept : base(stack(), stack(), stack() + kSize) {}
 
-  vector(size_type count, const value_type& value) requires sh::copy_constructible<value_type>
+  vector(size_type count, const value_type& value) requires copy_constructible<value_type>
       : vector() {
     construct(count, value);
   }
@@ -490,17 +487,17 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
     construct(first, last);
   }
 
-  vector(const vector& other) requires sh::copy_constructible<value_type>
+  vector(const vector& other) requires copy_constructible<value_type>
       : vector(other.begin(), other.end()) {}
 
   vector(vector&& other) : vector() {
     move(std::forward<vector>(other));
   }
 
-  vector(std::initializer_list<value_type> init) requires sh::copy_constructible<value_type>
+  vector(std::initializer_list<value_type> init) requires copy_constructible<value_type>
       : vector(init.begin(), init.end()) {}
 
-  auto operator=(const vector& other) -> vector& requires sh::copy_constructible<value_type> {
+  auto operator=(const vector& other) -> vector& requires copy_constructible<value_type> {
     if (this != &other) [[likely]] {
       assign(other.begin(), other.end());
     }
@@ -517,7 +514,7 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
   }
 
   auto operator=(std::initializer_list<value_type> init)
-      -> vector& requires sh::copy_constructible<value_type> {
+      -> vector& requires copy_constructible<value_type> {
     assign(init.begin(), init.end());
     return *this;
   }
@@ -585,7 +582,7 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
 
   void move(vector&& other) {
     if (other.data_ == other.stack()) {
-      if constexpr (sh::move_constructible<value_type>) {
+      if constexpr (move_constructible<value_type>) {
         head_ = std::uninitialized_move(other.begin(), other.end(), begin());
       } else {
         head_ = std::uninitialized_copy(other.begin(), other.end(), begin());
@@ -603,7 +600,7 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
 };
 
 template <typename T>
-  requires sh::move_constructible<T> || sh::copy_constructible<T>
+  requires move_constructible<T> || copy_constructible<T>
 class vector<T, 0> : private detail::vector_base<T, vector<T>> {
  private:
   friend class detail::vector_base<T, vector<T>>;
@@ -624,7 +621,7 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
 
   vector() noexcept = default;
 
-  vector(size_type count, const value_type& value) requires sh::copy_constructible<value_type> {
+  vector(size_type count, const value_type& value) requires copy_constructible<value_type> {
     construct(count, value);
   }
 
@@ -638,17 +635,17 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
     construct(first, last);
   }
 
-  vector(const vector& other) requires sh::copy_constructible<value_type>
+  vector(const vector& other) requires copy_constructible<value_type>
       : vector(other.begin(), other.end()) {}
 
   vector(vector&& other) noexcept : base(other.data_, other.head_, other.last_) {
     other.reset();
   }
 
-  vector(std::initializer_list<value_type> init) requires sh::copy_constructible<value_type>
+  vector(std::initializer_list<value_type> init) requires copy_constructible<value_type>
       : vector(init.begin(), init.end()) {}
 
-  auto operator=(const vector& other) -> vector& requires sh::copy_constructible<value_type> {
+  auto operator=(const vector& other) -> vector& requires copy_constructible<value_type> {
     if (this != &other) [[likely]] {
       assign(other.begin(), other.end());
     }
@@ -667,7 +664,7 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
   }
 
   auto operator=(std::initializer_list<value_type> init)
-      -> vector& requires sh::copy_constructible<value_type> {
+      -> vector& requires copy_constructible<value_type> {
     assign(init.begin(), init.end());
     return *this;
   }

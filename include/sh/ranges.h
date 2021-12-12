@@ -8,27 +8,33 @@ namespace sh {
 
 template <typename Range>
 concept forward_range = requires {
-  typename sh::iterator_t<Range>;
-  typename sh::sentinel_t<Range>;
-  requires forward_iterator<sh::iterator_t<Range>>;
-  requires sentinel_for<sh::sentinel_t<Range>, sh::iterator_t<Range>>;
+  typename iterator_t<Range>;
+  typename sentinel_t<Range>;
+  requires forward_iterator<iterator_t<Range>>;
+  requires sentinel_for<sentinel_t<Range>, iterator_t<Range>>;
 };
 
 template <forward_range Range>
-using range_value_t = sh::iter_value_t<sh::iterator_t<Range>>;
+using range_value_t = iter_value_t<iterator_t<Range>>;
 
 template <forward_range Range>
-using range_reference_t = sh::iter_reference_t<sh::iterator_t<Range>>;
+using range_reference_t = iter_reference_t<iterator_t<Range>>;
 
 template <typename Range>
 concept reverse_range = requires {
-  typename sh::reverse_iterator_t<Range>;
-  typename sh::reverse_sentinel_t<Range>;
-  requires forward_iterator<sh::reverse_iterator_t<Range>>;
-  requires sentinel_for<sh::reverse_sentinel_t<Range>, sh::reverse_iterator_t<Range>>;
+  typename reverse_iterator_t<Range>;
+  typename reverse_sentinel_t<Range>;
+  requires forward_iterator<reverse_iterator_t<Range>>;
+  requires sentinel_for<reverse_sentinel_t<Range>, reverse_iterator_t<Range>>;
 };
 
-template <sh::forward_iterator I, sh::sentinel_for<I> S>
+template <reverse_range Range>
+using range_reverse_value_t = iter_value_t<reverse_iterator_t<Range>>;
+
+template <reverse_range Range>
+using range_reverse_reference_t = iter_reference_t<reverse_iterator_t<Range>>;
+
+template <forward_iterator I, sentinel_for<I> S>
 class range {
  public:
   range(I begin, S end) : begin_(begin), end_(end) {}
@@ -62,7 +68,7 @@ class range {
   S end_;
 };
 
-template <sh::forward_iterator I, sh::sentinel_for<I> S = std::default_sentinel_t>
+template <forward_iterator I, sentinel_for<I> S = std::default_sentinel_t>
 class sentinel_range {
  public:
   sentinel_range(I begin) : begin_(begin) {}
@@ -96,22 +102,21 @@ class sentinel_range {
 };
 
 template <forward_range Range>
-auto contains(const Range& range, const range_value_t<Range>& value) {
+auto contains(const Range& range, const range_value_t<Range>& value) -> bool {
   return std::find(std::begin(range), std::end(range), value) != std::end(range);
 }
 
-template <sh::reverse_range Range>
-auto reversed(Range& range)
-    -> sh::range<sh::reverse_iterator_t<Range>, sh::reverse_sentinel_t<Range>> {
+template <reverse_range Range>
+auto reversed(Range& range) -> sh::range<reverse_iterator_t<Range>, reverse_sentinel_t<Range>> {
   return {std::rbegin(range), std::rend(range)};
 }
 
-template <std::integral Integral, sh::forward_iterator I, sh::sentinel_for<I> S>
+template <std::integral Integral, forward_iterator I, sentinel_for<I> S>
 class enumerate_iterator {
  public:
   struct value_type {
     Integral index;
-    sh::iter_reference_t<I> value;
+    iter_reference_t<I> value;
   };
 
   enumerate_iterator(Integral index, I begin, S end) : index_(index), begin_(begin), end_(end) {}
@@ -140,9 +145,9 @@ class enumerate_iterator {
   S end_;
 };
 
-template <sh::forward_range Range, std::integral Integral = std::size_t>
-auto enumerate(Range& range, Integral start = 0) -> sh::sentinel_range<
-    enumerate_iterator<Integral, sh::iterator_t<Range>, sh::sentinel_t<Range>>> {
+template <forward_range Range, std::integral Integral = std::size_t>
+auto enumerate(Range& range, Integral start = 0)
+    -> sentinel_range<enumerate_iterator<Integral, iterator_t<Range>, sentinel_t<Range>>> {
   return {{start, std::begin(range), std::end(range)}};
 }
 

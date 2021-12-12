@@ -50,7 +50,7 @@ auto hash(const T& value) -> u64 {
   return murmur(&value, sizeof(T), 0);
 }
 
-template <sh::forward_iterator I, sh::sentinel_for<I> S>
+template <forward_iterator I, sentinel_for<I> S>
 auto hash(I first, S last) -> u64 {
   u64 seed = 0;
   while (first != last) {

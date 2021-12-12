@@ -21,7 +21,7 @@ using reverse_sentinel_t = decltype(std::rend(std::declval<T&>()));
 
 template <typename T>
 concept dereferencable = requires(T& t) {
-  { *t } -> sh::different_from<void>;
+  { *t } -> different_from<void>;
 };
 
 template <dereferencable T>

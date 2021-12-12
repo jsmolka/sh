@@ -5,10 +5,10 @@
 namespace sh {
 
 template <typename T, std::size_t kSize = 0>
-  requires sh::copy_constructible<T> || sh::move_constructible<T>
-class stack : private sh::vector<T, kSize> {
+  requires copy_constructible<T> || move_constructible<T>
+class stack : private vector<T, kSize> {
  private:
-  using base = sh::vector<T, kSize>;
+  using base = vector<T, kSize>;
 
  public:
   using typename base::value_type;
@@ -64,11 +64,11 @@ class stack : private sh::vector<T, kSize> {
     return end()[-index - 1];
   }
 
-  void push(const value_type& value) requires sh::copy_constructible<value_type> {
+  void push(const value_type& value) requires copy_constructible<value_type> {
     this->push_back(value);
   }
 
-  void push(value_type&& value) requires sh::move_constructible<value_type> {
+  void push(value_type&& value) requires move_constructible<value_type> {
     this->push_back(std::forward<value_type>(value));
   }
 
@@ -88,7 +88,7 @@ class stack : private sh::vector<T, kSize> {
     this->pop_back(count);
   }
 
-  auto pop_value() -> value_type requires sh::move_constructible<value_type> {
+  auto pop_value() -> value_type requires move_constructible<value_type> {
     assert(!empty());
     auto value{std::move(top())};
     pop();

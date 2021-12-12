@@ -6,7 +6,6 @@
 #include <string>
 #include <string_view>
 
-#include <sh/concepts.h>
 #include <sh/fast_float/fast_float.h>
 #include <sh/int.h>
 
