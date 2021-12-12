@@ -32,12 +32,6 @@
 #  define SH_CC_MINGW 0
 #endif
 
-#ifdef __EMSCRIPTEN__
-#  define SH_CC_EMSCRIPTEN 1
-#else
-#  define SH_CC_EMSCRIPTEN 0
-#endif
-
 #ifdef _WIN32
 #  define SH_OS_WINDOWS 1
 #else

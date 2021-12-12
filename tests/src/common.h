@@ -8,6 +8,7 @@
 #include <boost/ut.hpp>
 #include <sh/argparse.h>
 #include <sh/array.h>
+#include <sh/filesystem.h>
 #include <sh/fmt.h>
 #include <sh/hash.h>
 #include <sh/int.h>

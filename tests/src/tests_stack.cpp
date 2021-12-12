@@ -5,7 +5,7 @@
 
 template <typename T, std::size_t N>
 auto operator<<(std::ostream& out, const sh::stack<T, N>& vector) -> std::ostream& {
-  return fmt::format("[{}]", fmt::join(vector, ", "));
+  return out << fmt::format("[{}]", fmt::join(vector, ", "));
 }
 
 namespace {

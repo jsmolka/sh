@@ -71,13 +71,7 @@ struct test_type4 {
   std::unique_ptr<int> value;
 };
 
-template <typename T>
-concept test_type = std::constructible_from<T, int> && requires(T&& t) {
-  t.value;
-};
-
-template <test_type T>
+template <sh::any_of<test_type1, test_type2, test_type3, test_type4> T>
 auto operator<<(std::ostream& out, const T& value) -> std::ostream& {
-  out << value.value;
-  return out;
+  return out << value.value;
 }
