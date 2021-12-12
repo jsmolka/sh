@@ -222,6 +222,54 @@ class argument_parser {
     return {};
   }
 
+  auto help() const -> std::string {
+    using line = std::tuple<std::string, std::string, bool>;
+
+    std::string help = "usage:\n  program";
+    std::size_t widest = 0;
+    std::vector<line> lines;
+
+    for (const auto& argument : arguments_) {
+      std::string names(fmt::format("{}", fmt::join(argument->names, ", ")));
+      std::string description(argument->help);
+      if (argument->default_value.has_value()) {
+        description.append(fmt::format(" [default: {}]", argument->default_value_repr));
+      } else if (argument->optional()) {
+        description.append(" [optional]");
+      }
+      widest = std::max(widest, names.size());
+      lines.push_back({names, description, argument->positional()});
+
+      constexpr std::string_view kFormat[2][2] = {{" {}", " <{}>"}, {" [{}]", " [<{}>]"}};
+
+      std::string arg(argument->names.front());
+      if (!argument->positional() && !argument->boolean()) {
+        arg.append(" <value>");
+      }
+
+      const auto format = kFormat[int(argument->optional())][int(argument->positional())];
+      help.append(fmt::format(fmt::runtime(format), arg));
+    }
+
+    std::string keyword;
+    std::string positional;
+
+    for (const auto& [names, description, is_positional] : lines) {
+      auto& group = is_positional ? positional : keyword;
+      group.append(fmt::format("\n  {:<{}}{}", names, widest + 4, description));
+    }
+
+    if (!keyword.empty()) {
+      help.append("\n\nkeyword arguments:");
+      help.append(keyword);
+    }
+    if (!positional.empty()) {
+      help.append("\n\npositional arguments:");
+      help.append(positional);
+    }
+    return help;
+  }
+
  private:
   auto find(std::string_view name) const -> basic_argument* {
     name = trim(name);
