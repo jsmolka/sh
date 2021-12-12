@@ -960,10 +960,10 @@ void run() {
 template <template <typename, std::size_t> typename Test>
 void run() {
   run<Test, int>();
-  run<Test, test_type1>();
-  run<Test, test_type2>();
-  run<Test, test_type3>();
-  run<Test, test_type4>();
+  run<Test, type1>();
+  run<Test, type2>();
+  run<Test, type3>();
+  run<Test, type4>();
 }
 
 }  // namespace
