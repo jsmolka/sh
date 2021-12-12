@@ -10,6 +10,7 @@
 #include <sh/fmt.h>
 #include <sh/parse.h>
 #include <sh/ranges.h>
+#include <sh/vector.h>
 
 namespace sh {
 
@@ -18,16 +19,16 @@ namespace {
 template <formattable T>
 auto repr(const T& value) -> std::string {
   if constexpr (std::convertible_to<T, std::string_view>) {
-    return fmt::format("\"{}\"", std::string_view{value});
+    return fmt::format(R"("{}")", std::string_view{value});
   } else if constexpr (std::same_as<T, filesystem::path>) {
-    return fmt::format("\"{}\"", value);
+    return fmt::format(R"("{}")", value);
   } else {
-    return fmt::format("{}", value);
+    return fmt::to_string(value);
   }
 }
 
-inline auto split(std::string_view str, char delim) -> std::vector<std::string_view> {
-  const auto pos = str.find_first_of(delim);
+inline auto split(std::string_view str, char delimiter) -> vector<std::string_view, 2> {
+  const auto pos = str.find_first_of(delimiter);
   if (pos == std::string_view::npos) {
     return {str};
   } else {
@@ -41,7 +42,7 @@ inline auto trim(std::string_view str) -> std::string_view {
     return str;
   }
   const auto last = str.find_last_not_of(' ');
-  return str.substr(first, (last - first + 1));
+  return str.substr(first, last - first + 1);
 }
 
 template <typename T>
@@ -58,7 +59,9 @@ template <typename T>
 using value_type_t = typename value_type<T>::type;
 
 template <typename T>
-concept serializable = parsable<value_type_t<T>> && formattable<value_type_t<T>>;
+concept argument_type =
+    std::default_initializable<value_type_t<T>> && std::copy_constructible<value_type_t<T>> &&
+    parsable<value_type_t<T>> && formattable<value_type_t<T>>;
 
 }  // namespace
 
@@ -66,7 +69,7 @@ class description : public std::string_view {};
 
 class basic_argument {
  public:
-  basic_argument(const std::vector<std::string_view>& options) : names(options) {}
+  basic_argument(const std::vector<std::string_view>& names) : names(names) {}
 
   auto required() const -> bool {
     return !(optional() || default_value.has_value());
@@ -76,31 +79,67 @@ class basic_argument {
     return !names.front().starts_with('-');
   }
 
+  auto usage() const -> std::string {
+    std::string usage(names.front());
+    if (positional()) {
+      usage = "<" + usage + ">";
+    } else if (!boolean()) {
+      usage.append(" <value>");
+    }
+    if (optional() || default_value.has_value()) {
+      usage = "[" + usage + "]";
+    }
+    return usage;
+  }
+
+  auto description() const -> std::string {
+    std::vector<std::string> strings;
+    if (!description_.empty()) {
+      strings.emplace_back(description_);
+    }
+    if (default_value.has_value()) {
+      strings.emplace_back(fmt::format("[default: {}]", default_value_repr_));
+    } else if (optional()) {
+      strings.emplace_back("[optional]");
+    }
+    return fmt::to_string(fmt::join(strings, " "));
+  }
+
   virtual auto boolean() const -> bool = 0;
   virtual auto optional() const -> bool = 0;
   virtual void parse(std::string_view) = 0;
 
   std::any value;
   std::any default_value;
-  std::string default_value_repr;
-  std::string_view description;
   std::vector<std::string_view> names;
+
+ protected:
+  void expected_data() {
+    throw std::runtime_error(fmt::format("expected data for argument: {}", names.front()));
+  }
+
+  void cannot_parse(std::string_view data) {
+    throw std::runtime_error(fmt::format("cannot parse argument data: {}", data));
+  }
+
+  std::string default_value_repr_;
+  std::string_view description_;
 };
 
-template <serializable T>
+template <argument_type T>
 class argument final : public basic_argument {
  public:
   using basic_argument::basic_argument;
 
   auto operator|(sh::description description) -> argument<T>& {
-    this->description = description;
+    description_ = description;
     return *this;
   }
 
   template <std::convertible_to<T> U>
   auto operator|(const U& data) -> argument<T>& {
     const T value(data);
-    default_value_repr = repr(value);
+    default_value_repr_ = repr(value);
     default_value = value;
     return *this;
   }
@@ -118,14 +157,14 @@ class argument final : public basic_argument {
       if constexpr (std::same_as<T, bool>) {
         value = true;
       } else {
-        throw std::runtime_error(fmt::format("expected data for argument: {}", names.front()));
+        expected_data();
       }
     } else {
       data = trim(data);
       if (const auto result = sh::parse<T>(data)) {
         value = *result;
       } else {
-        throw std::runtime_error(fmt::format("cannot parse: {}", data));
+        cannot_parse(data);
       }
     }
   }
@@ -137,14 +176,14 @@ class argument<std::optional<T>> final : public basic_argument {
   using basic_argument::basic_argument;
 
   auto operator|(sh::description description) -> argument<std::optional<T>>& {
-    this->description = description;
+    description_ = description;
     return *this;
   }
 
   template <std::convertible_to<T> U>
   auto operator|(const U& data) -> argument<std::optional<T>>& {
     const T value(data);
-    default_value_repr = repr(value);
+    default_value_repr_ = repr(value);
     default_value = std::optional(value);
     return *this;
   }
@@ -162,14 +201,14 @@ class argument<std::optional<T>> final : public basic_argument {
       if constexpr (std::same_as<T, bool>) {
         value = std::optional(true);
       } else {
-        throw std::runtime_error(fmt::format("expected data for argument: {}", names.front()));
+        expected_data();
       }
     } else {
       data = trim(data);
       if (const auto result = sh::parse<T>(data)) {
         value = result;
       } else {
-        throw std::runtime_error(fmt::format("expected data for argument: {}", names.front()));
+        cannot_parse(data);
       }
     }
   }
@@ -179,7 +218,7 @@ class argument_parser {
  public:
   argument_parser(std::string_view program) : program_(program) {}
 
-  template <serializable T, std::convertible_to<std::string_view>... Names>
+  template <argument_type T, std::convertible_to<std::string_view>... Names>
     requires not_empty<Names...>
   auto add(Names&&... names) -> argument<T>& {
     const auto views = {trim(names)...};
@@ -193,10 +232,11 @@ class argument_parser {
     while (index < argc) {
       const auto data = trim(argv[index++]);
       const auto pair = split(data, '=');
-      if (const auto argument = find(pair.front())) {
+      const auto argument = find(pair.front());
+      if (argument && !argument->positional()) {
         if (pair.size() == 2) {
           argument->parse(pair.back());
-        } else if (index < argc && !argument->boolean() && !find(argv[index])) {
+        } else if (index < argc && !argument->boolean()) {
           argument->parse(argv[index++]);
         } else {
           argument->parse({});
@@ -212,7 +252,7 @@ class argument_parser {
     validate();
   }
 
-  template <serializable T>
+  template <argument_type T>
   auto get(std::string_view name) const -> T {
     if (const auto argument = find(name)) {
       if (argument->value.has_value()) {
@@ -225,42 +265,28 @@ class argument_parser {
   }
 
   auto help() const -> std::string {
-    std::string help(fmt::format("usage:\n  {}", program_));
+    std::vector<std::string> usage;
+    if (!program_.empty()) {
+      usage.emplace_back(program_);
+    }
 
     std::size_t widest = 0;
-    std::vector<std::tuple<std::string, std::string, bool>> arguments;
+    std::vector<std::tuple<std::string, std::string, bool>> lines;
     for (const auto& argument : arguments_) {
-      std::string usage(argument->names.front());
-      if (argument->positional()) {
-        usage = "<" + usage + ">";
-      } else if (!argument->boolean()) {
-        usage.append(" <value>");
-      }
-      if (argument->optional()) {
-        usage = "[" + usage + "]";
-      }
-      help.append(" ");
-      help.append(usage);
-
-      const auto names = fmt::format("{}", fmt::join(argument->names, ", "));
+      const auto names = fmt::to_string(fmt::join(argument->names, ", "));
+      lines.emplace_back(names, argument->description(), argument->positional());
+      usage.emplace_back(argument->usage());
       widest = std::max(widest, names.size());
-
-      std::string description(argument->description);
-      if (argument->default_value.has_value()) {
-        description.append(fmt::format(" [default: {}]", argument->default_value_repr));
-      } else if (argument->optional()) {
-        description.append(" [optional]");
-      }
-      arguments.emplace_back(names, description, argument->positional());
     }
 
     std::string keyword;
     std::string positional;
-    for (const auto& [names, description, is_positional] : arguments) {
+    for (const auto& [names, description, is_positional] : lines) {
       auto& group = is_positional ? positional : keyword;
       group.append(fmt::format("\n  {:<{}}{}", names, widest + 4, description));
     }
 
+    auto help(fmt::format("usage:\n  {}", fmt::join(usage, " ")));
     if (!keyword.empty()) {
       help.append("\n\nkeyword arguments:");
       help.append(keyword);
