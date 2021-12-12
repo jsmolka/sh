@@ -5,6 +5,7 @@
 #include "tests_parse.h"
 #include "tests_ranges.h"
 #include "tests_stack.h"
+#include "tests_utility.h"
 #include "tests_vector.h"
 
 int main() {
@@ -16,4 +17,5 @@ int main() {
   tests_ranges();
   tests_argparse();
   tests_filesystem();
+  tests_utility();
 }

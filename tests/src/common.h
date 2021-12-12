@@ -15,6 +15,7 @@
 #include <sh/parse.h>
 #include <sh/ranges.h>
 #include <sh/stack.h>
+#include <sh/utility.h>
 #include <sh/vector.h>
 
 using namespace boost::ut;

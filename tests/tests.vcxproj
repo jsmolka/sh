@@ -22,6 +22,7 @@
     <ClCompile Include="src\tests_parse.cpp" />
     <ClCompile Include="src\tests_ranges.cpp" />
     <ClCompile Include="src\tests_stack.cpp" />
+    <ClCompile Include="src\tests_utility.cpp" />
     <ClCompile Include="src\tests_vector.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -32,6 +33,7 @@
     <ClInclude Include="src\tests_parse.h" />
     <ClInclude Include="src\tests_ranges.h" />
     <ClInclude Include="src\tests_stack.h" />
+    <ClInclude Include="src\tests_utility.h" />
     <ClInclude Include="src\tests_vector.h" />
     <ClInclude Include="src\common_types.h" />
     <ClInclude Include="src\common.h" />

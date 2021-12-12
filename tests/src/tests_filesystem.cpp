@@ -9,13 +9,8 @@ auto operator<<(std::ostream& out, fs::status status) -> std::ostream& {
 }
 
 void tests_filesystem() {
-  sh::test("filesystem format path") = []() {
-    expect(eq(fmt::format("{}", fs::path("test")), std::string_view("test")));
-  };
-
   sh::test("filesystem program") = []() {
     fmt::print("{}\n", fs::program());
-    fmt::print("{}\n", fs::absolute("relative"));
   };
 
   sh::test("filesystem read/write resizable") = []() {
