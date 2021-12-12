@@ -62,7 +62,7 @@ concept serializable = parsable<value_type_t<T>> && formattable<value_type_t<T>>
 
 }  // namespace
 
-class help : public std::string_view {};
+class description : public std::string_view {};
 
 class basic_argument {
  public:
@@ -83,7 +83,7 @@ class basic_argument {
   std::any value;
   std::any default_value;
   std::string default_value_repr;
-  std::string_view help;
+  std::string_view description;
   std::vector<std::string_view> names;
 };
 
@@ -92,8 +92,8 @@ class argument final : public basic_argument {
  public:
   using basic_argument::basic_argument;
 
-  auto operator|(sh::help help) -> argument<T>& {
-    this->help = help;
+  auto operator|(sh::description description) -> argument<T>& {
+    this->description = description;
     return *this;
   }
 
@@ -136,8 +136,8 @@ class argument<std::optional<T>> final : public basic_argument {
  public:
   using basic_argument::basic_argument;
 
-  auto operator|(sh::help help) -> argument<std::optional<T>>& {
-    this->help = help;
+  auto operator|(sh::description description) -> argument<std::optional<T>>& {
+    this->description = description;
     return *this;
   }
 
@@ -177,6 +177,8 @@ class argument<std::optional<T>> final : public basic_argument {
 
 class argument_parser {
  public:
+  argument_parser(std::string_view program) : program_(program) {}
+
   template <serializable T, std::convertible_to<std::string_view>... Names>
     requires not_empty<Names...>
   auto add(Names&&... names) -> argument<T>& {
@@ -223,38 +225,38 @@ class argument_parser {
   }
 
   auto help() const -> std::string {
-    using line = std::tuple<std::string, std::string, bool>;
+    std::string help(fmt::format("usage:\n  {}", program_));
 
-    std::string help = "usage:\n  program";
     std::size_t widest = 0;
-    std::vector<line> lines;
-
+    std::vector<std::tuple<std::string, std::string, bool>> arguments;
     for (const auto& argument : arguments_) {
-      std::string names(fmt::format("{}", fmt::join(argument->names, ", ")));
-      std::string description(argument->help);
+      std::string usage(argument->names.front());
+      if (argument->positional()) {
+        usage = "<" + usage + ">";
+      } else if (!argument->boolean()) {
+        usage.append(" <value>");
+      }
+      if (argument->optional()) {
+        usage = "[" + usage + "]";
+      }
+      help.append(" ");
+      help.append(usage);
+
+      const auto names = fmt::format("{}", fmt::join(argument->names, ", "));
+      widest = std::max(widest, names.size());
+
+      std::string description(argument->description);
       if (argument->default_value.has_value()) {
         description.append(fmt::format(" [default: {}]", argument->default_value_repr));
       } else if (argument->optional()) {
         description.append(" [optional]");
       }
-      widest = std::max(widest, names.size());
-      lines.push_back({names, description, argument->positional()});
-
-      constexpr std::string_view kFormat[2][2] = {{" {}", " <{}>"}, {" [{}]", " [<{}>]"}};
-
-      std::string arg(argument->names.front());
-      if (!argument->positional() && !argument->boolean()) {
-        arg.append(" <value>");
-      }
-
-      const auto format = kFormat[int(argument->optional())][int(argument->positional())];
-      help.append(fmt::format(fmt::runtime(format), arg));
+      arguments.emplace_back(names, description, argument->positional());
     }
 
     std::string keyword;
     std::string positional;
-
-    for (const auto& [names, description, is_positional] : lines) {
+    for (const auto& [names, description, is_positional] : arguments) {
       auto& group = is_positional ? positional : keyword;
       group.append(fmt::format("\n  {:<{}}{}", names, widest + 4, description));
     }
@@ -299,6 +301,7 @@ class argument_parser {
     }
   }
 
+  std::string_view program_;
   std::vector<std::unique_ptr<basic_argument>> arguments_;
 };
 

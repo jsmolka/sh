@@ -12,7 +12,7 @@ std::size_t argc(T (&)[kSize]) {
 void tests_bool() {
   sh::test("argparse<bool>") = []() {
     const char* argv[] = {"program.exe", "-a", "-b=true", "-c=false", "true", "false"};
-    sh::argument_parser parser;
+    sh::argument_parser parser("program");
     parser.add<bool>("-a");
     parser.add<bool>("-b");
     parser.add<bool>("-c");
@@ -38,7 +38,7 @@ void tests_bool() {
 void tests_int() {
   sh::test("argparse<int>") = []() {
     const char* argv[] = {"program.exe", "-a", "0", "-b", "1", "-c=0b10", "0x3", "4"};
-    sh::argument_parser parser;
+    sh::argument_parser parser("program");
     parser.add<int>("-a");
     parser.add<int>("-b");
     parser.add<int>("-c");
@@ -64,7 +64,7 @@ void tests_int() {
 void tests_double() {
   sh::test("argparse<double>") = []() {
     const char* argv[] = {"program.exe", "-a", "0.0", "-b", "0.1", "-c=0.2", "0.3", "0.4"};
-    sh::argument_parser parser;
+    sh::argument_parser parser("program");
     parser.add<double>("-a");
     parser.add<double>("-b");
     parser.add<double>("-c");
@@ -92,7 +92,7 @@ void tests_string() {
   sh::test("argparse<{}>", typeid(String).name()) = []() {
     const char* argv[] = {"program.exe", "-a",       "test0", "-b",
                           "test1",       "-c=test2", "test3", "test4"};
-    sh::argument_parser parser;
+    sh::argument_parser parser("program");
     parser.add<String>("-a");
     parser.add<String>("-b");
     parser.add<String>("-c");
@@ -118,7 +118,7 @@ void tests_string() {
 void tests_error() {
   sh::test("argparse missing argument value") = []() {
     const char* argv[] = {"program.exe", "-x"};
-    sh::argument_parser parser;
+    sh::argument_parser parser("program");
     parser.add<int>("-x");
     expect(throws([&]() {
       parser.parse(argc(argv), argv);
@@ -127,7 +127,7 @@ void tests_error() {
 
   sh::test("argparse wrong type argument") = []() {
     const char* argv[] = {"program.exe", "-x", "wrong"};
-    sh::argument_parser parser;
+    sh::argument_parser parser("program");
     parser.add<int>("-x");
     expect(throws([&]() {
       parser.parse(argc(argv), argv);
@@ -136,7 +136,7 @@ void tests_error() {
 
   sh::test("argparse missing keyword argument") = []() {
     const char* argv[] = {"program.exe"};
-    sh::argument_parser parser;
+    sh::argument_parser parser("program");
     parser.add<int>("-x");
     expect(throws([&]() {
       parser.parse(argc(argv), argv);
@@ -145,7 +145,7 @@ void tests_error() {
 
   sh::test("argparse missing positional argument") = []() {
     const char* argv[] = {"program.exe"};
-    sh::argument_parser parser;
+    sh::argument_parser parser("program");
     parser.add<int>("x");
     expect(throws([&]() {
       parser.parse(argc(argv), argv);
@@ -154,7 +154,7 @@ void tests_error() {
 
   sh::test("argparse unmatched argument") = []() {
     const char* argv[] = {"program.exe", "x"};
-    sh::argument_parser parser;
+    sh::argument_parser parser("program");
     expect(throws([&]() {
       parser.parse(argc(argv), argv);
     }));
@@ -164,7 +164,7 @@ void tests_error() {
 void tests_trim() {
   sh::test("argparse trim") = []() {
     const char* argv[] = {"program.exe", "  -x  ", "  1  "};
-    sh::argument_parser parser;
+    sh::argument_parser parser("program");
     parser.add<int>("-x  ");
     parser.parse(argc(argv), argv);
     expect(eq(parser.get<int>("-x"), 1));
@@ -174,7 +174,7 @@ void tests_trim() {
 void tests_optional() {
   sh::test("argparse optional") = []() {
     const char* argv[] = {"program.exe", "-b", "1", "-c", "2"};
-    sh::argument_parser parser;
+    sh::argument_parser parser("program");
     parser.add<std::optional<int>>("-a");
     parser.add<std::optional<int>>("-b");
     parser.add<std::optional<bool>>("-c");
