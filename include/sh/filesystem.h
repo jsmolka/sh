@@ -53,7 +53,8 @@ status read(const path& file, Container& dst) {
   const auto size = file_size(file);
   if constexpr (resizable<Container>) {
     dst.resize(size);
-  } else if (dst.size() != size) {
+  }
+  if (dst.size() != size) {
     return status::bad_size;
   };
 
