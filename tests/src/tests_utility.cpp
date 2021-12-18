@@ -50,4 +50,19 @@ void tests_utility() {
     expect(eq(sh::cast<u16>(0x04030201, 0), 0x0201));
     expect(eq(sh::cast<u16>(0x04030201, 2), 0x0403));
   };
+
+  sh::test("reconstruct") = []() {
+    struct reconstruct {
+      reconstruct() = default;
+      reconstruct(int v) : v(v) {}
+      int v = 0;
+    };
+
+    reconstruct r;
+    expect(eq(r.v, 0));
+    sh::reconstruct(r, 1);
+    expect(eq(r.v, 1));
+    sh::reconstruct(r);
+    expect(eq(r.v, 0));
+  };
 }

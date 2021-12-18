@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <utility>
 
 #include <sh/env.h>
 #include <sh/int.h>
@@ -37,6 +38,13 @@ auto cast(Source& data, std::size_t byte = 0) -> Dest& {
 template <typename Dest, typename Source>
 auto cast(const Source& data, std::size_t byte = 0) -> const Dest& {
   return *reinterpret_cast<const Dest*>(reinterpret_cast<const u8*>(&data) + byte);
+}
+
+template <typename T, typename... Args>
+  requires std::constructible_from<T, Args...>
+void reconstruct(T& instance, Args&&... args) {
+  instance.~T();
+  new (&instance) T(std::forward<Args>(args)...);
 }
 
 }  // namespace sh
