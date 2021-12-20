@@ -27,20 +27,20 @@ namespace sh {
 #  define SH_UNREACHABLE assert(false)
 #endif
 
-template <typename... Ts>
+template<typename... Ts>
 constexpr void unused(const Ts&...) {}
 
-template <typename Dest, typename Source>
+template<typename Dest, typename Source>
 auto cast(Source& data, std::size_t byte = 0) -> Dest& {
   return *reinterpret_cast<Dest*>(reinterpret_cast<u8*>(&data) + byte);
 }
 
-template <typename Dest, typename Source>
+template<typename Dest, typename Source>
 auto cast(const Source& data, std::size_t byte = 0) -> const Dest& {
   return *reinterpret_cast<const Dest*>(reinterpret_cast<const u8*>(&data) + byte);
 }
 
-template <typename T, typename... Args>
+template<typename T, typename... Args>
   requires std::constructible_from<T, Args...>
 void reconstruct(T& instance, Args&&... args) {
   instance.~T();

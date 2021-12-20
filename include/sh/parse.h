@@ -19,9 +19,9 @@ namespace sh {
 
 namespace detail {
 
-template <typename T>
+template<typename T>
 struct number_parser {
-  template <typename... Args>
+  template<typename... Args>
   auto parse(std::string_view data, Args&&... args) -> std::optional<T> {
     T value{};
     const auto beg = data.data();
@@ -34,7 +34,7 @@ struct number_parser {
   }
 };
 
-template <typename T>
+template<typename T>
 struct int_parser : number_parser<T> {
   auto parse(std::string_view data) -> std::optional<T> {
     const auto negative = data.starts_with('-');
@@ -72,23 +72,21 @@ struct int_parser : number_parser<T> {
 
 }  // namespace detail
 
-template <typename T>
+template<typename T>
 struct parser {
   ~parser() = delete;
 };
 
-// clang-format off
-template <> struct parser<u8>  : detail::int_parser<u8>  {}; 
-template <> struct parser<u16> : detail::int_parser<u16> {};
-template <> struct parser<u32> : detail::int_parser<u32> {};
-template <> struct parser<u64> : detail::int_parser<u64> {};
-template <> struct parser<s8>  : detail::int_parser<s8>  {}; 
-template <> struct parser<s16> : detail::int_parser<s16> {};
-template <> struct parser<s32> : detail::int_parser<s32> {};
-template <> struct parser<s64> : detail::int_parser<s64> {};
-// clang-format on
+template<> struct parser<u8>  : detail::int_parser<u8>  {}; 
+template<> struct parser<u16> : detail::int_parser<u16> {};
+template<> struct parser<u32> : detail::int_parser<u32> {};
+template<> struct parser<u64> : detail::int_parser<u64> {};
+template<> struct parser<s8>  : detail::int_parser<s8>  {}; 
+template<> struct parser<s16> : detail::int_parser<s16> {};
+template<> struct parser<s32> : detail::int_parser<s32> {};
+template<> struct parser<s64> : detail::int_parser<s64> {};
 
-template <>
+template<>
 struct parser<bool> {
   auto parse(std::string_view data) -> std::optional<bool> {
     if (data == "1" || data == "true") {
@@ -101,29 +99,27 @@ struct parser<bool> {
   }
 };
 
-// clang-format off
-template <> struct parser<float>  : detail::number_parser<float>  {};
-template <> struct parser<double> : detail::number_parser<double> {};
-// clang-format on
+template<> struct parser<float>  : detail::number_parser<float>  {};
+template<> struct parser<double> : detail::number_parser<double> {};
 
-template <>
+template<>
 struct parser<std::string> {
   auto parse(std::string_view data) -> std::optional<std::string> {
     return std::string(data);
   }
 };
 
-template <>
+template<>
 struct parser<std::string_view> {
   auto parse(std::string_view data) -> std::optional<std::string_view> {
     return data;
   }
 };
 
-template <typename T>
+template<typename T>
 concept parsable = std::destructible<parser<T>>;
 
-template <parsable T>
+template<parsable T>
 auto parse(std::string_view data) -> std::optional<T> {
   return parser<T>{}.parse(data);
 }

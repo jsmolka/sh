@@ -13,19 +13,19 @@ namespace sh {
 
 namespace detail {
 
-template <typename T, typename Derived>
+template<typename T, typename Derived>
 class vector_base {
- public:
-  using value_type = T;
-  using size_type = std::size_t;
-  using difference_type = std::make_signed_t<size_type>;
-  using reference = value_type&;
-  using const_reference = const value_type&;
-  using pointer = value_type*;
-  using const_pointer = const value_type*;
-  using iterator = pointer;
-  using const_iterator = const_pointer;
-  using reverse_iterator = std::reverse_iterator<iterator>;
+public:
+  using value_type             = T;
+  using size_type              = std::size_t;
+  using difference_type        = std::make_signed_t<size_type>;
+  using reference              = value_type&;
+  using const_reference        = const value_type&;
+  using pointer                = value_type*;
+  using const_pointer          = const value_type*;
+  using iterator               = pointer;
+  using const_iterator         = const_pointer;
+  using reverse_iterator       = std::reverse_iterator<iterator>;
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
   vector_base() noexcept = default;
@@ -37,13 +37,14 @@ class vector_base {
     destruct();
   }
 
-  void assign(size_type count, const value_type& value) requires copy_constructible<value_type> {
+  void assign(size_type count, const value_type& value)
+      requires copy_constructible<value_type> {
     std::destroy(begin(), end());
     uninitialized_reserve(count);
     head_ = std::uninitialized_fill_n(begin(), count, value);
   }
 
-  template <std::random_access_iterator I>
+  template<std::random_access_iterator I>
     requires std::constructible_from<value_type, std::iter_reference_t<I>>
   void assign(I first, I last) {
     const auto distance = std::distance(first, last);
@@ -53,7 +54,8 @@ class vector_base {
     head_ = std::uninitialized_copy(first, last, begin());
   }
 
-  void assign(std::initializer_list<value_type> init) requires copy_constructible<value_type> {
+  void assign(std::initializer_list<value_type> init)
+      requires copy_constructible<value_type> {
     assign(init.begin(), init.end());
   }
 
@@ -172,9 +174,8 @@ class vector_base {
     head_ = data_;
   }
 
-  template <typename... Args>
-    requires move_constructible<value_type> && move_assignable<value_type> &&
-        std::constructible_from<value_type, Args...>
+  template<typename... Args>
+    requires std::constructible_from<value_type, Args...> && move_constructible<value_type> && move_assignable<value_type>
   auto emplace(const_iterator pos, Args&&... args) -> iterator {
     assert(pos >= begin() && pos <= end());
     iterator where;
@@ -193,20 +194,18 @@ class vector_base {
     return std::construct_at(where, std::forward<Args>(args)...);
   }
 
-  auto insert(const_iterator pos, const value_type& value)
-      -> iterator requires move_constructible<value_type> &&
-      move_assignable<value_type> && std::copy_constructible<value_type> {
+  auto insert(const_iterator pos, const value_type& value) -> iterator
+      requires move_constructible<value_type> && move_assignable<value_type> && std::copy_constructible<value_type> {
     return emplace(pos, value);
   }
 
-  auto insert(const_iterator pos, value_type&& value)
-      -> iterator requires std::move_constructible<value_type> && move_assignable<value_type> {
+  auto insert(const_iterator pos, value_type&& value) -> iterator
+      requires std::move_constructible<value_type> && move_assignable<value_type> {
     return emplace(pos, std::move(value));
   }
 
-  auto insert(const_iterator pos, size_type count, const value_type& value)
-      -> iterator requires std::move_constructible<value_type> && move_assignable<value_type> &&
-      copy_constructible<value_type> {
+  auto insert(const_iterator pos, size_type count, const value_type& value) -> iterator
+      requires std::move_constructible<value_type> && move_assignable<value_type> && copy_constructible<value_type> {
     assert(pos >= begin() && pos <= end());
     if (count == 0) [[unlikely]] {
       return const_cast<iterator>(pos);
@@ -232,10 +231,9 @@ class vector_base {
     return where;
   }
 
-  template <std::random_access_iterator I>
-  auto insert(const_iterator pos, I first, I last)
-      -> iterator requires std::move_constructible<value_type> && move_assignable<value_type> &&
-      copy_constructible<value_type> {
+  template<std::random_access_iterator I>
+  auto insert(const_iterator pos, I first, I last) -> iterator
+      requires std::move_constructible<value_type> && move_assignable<value_type> && copy_constructible<value_type> {
     assert(pos >= begin() && pos <= end());
     if (first == last) [[unlikely]] {
       return const_cast<iterator>(pos);
@@ -264,13 +262,13 @@ class vector_base {
     return where;
   }
 
-  auto insert(const_iterator pos, std::initializer_list<value_type> init)
-      -> iterator requires std::move_constructible<value_type> && move_assignable<value_type> &&
-      copy_constructible<value_type> {
+  auto insert(const_iterator pos, std::initializer_list<value_type> init) -> iterator
+      requires std::move_constructible<value_type> && move_assignable<value_type> && copy_constructible<value_type> {
     return insert(pos, init.begin(), init.end());
   }
 
-  auto erase(const_iterator pos) -> iterator requires move_assignable<value_type> {
+  auto erase(const_iterator pos) -> iterator
+      requires move_assignable<value_type> {
     assert(pos >= begin() && pos < end());
     const auto where = const_cast<iterator>(pos);
     std::move(where + 1, end(), where);
@@ -278,7 +276,8 @@ class vector_base {
     return where;
   }
 
-  auto erase(const_iterator pos, size_type count) -> iterator requires move_assignable<value_type> {
+  auto erase(const_iterator pos, size_type count) -> iterator
+      requires move_assignable<value_type> {
     const auto where = const_cast<iterator>(pos);
     if (count) {
       assert(pos >= begin() && pos < end());
@@ -290,32 +289,56 @@ class vector_base {
     return where;
   }
 
-  auto erase(const_iterator first, const_iterator last)
-      -> iterator requires move_assignable<value_type> {
+  auto erase(const_iterator first, const_iterator last) -> iterator
+      requires move_assignable<value_type> {
     return erase(first, static_cast<size_type>(std::distance(first, last)));
   }
 
-  void resize(size_type size, const value_type& value) requires copy_constructible<value_type> {
-    resize_impl(size, value);
+private:
+  template<typename... Args>
+    requires std::constructible_from<value_type, Args...>
+  void do_resize(size_type size, Args&&... args) {
+    if (size > this->size()) {
+      if (size > capacity()) {
+        reallocate(size);
+      }
+      if constexpr (sizeof...(Args) == 0) {
+        std::uninitialized_value_construct(end(), begin() + size);
+      } else {
+        std::uninitialized_fill(end(), begin() + size, std::forward<Args>(args)...);
+      }
+    } else if (size < this->size()) {
+      std::destroy(begin() + size, end());
+    }
+    head_ = begin() + size;
   }
 
-  void resize(size_type size) requires std::default_initializable<value_type> {
-    resize_impl(size);
+public:
+  void resize(size_type size, const value_type& value)
+      requires copy_constructible<value_type> {
+    do_resize(size, value);
   }
 
-  template <typename... Args>
+  void resize(size_type size)
+      requires std::default_initializable<value_type> {
+    do_resize(size);
+  }
+
+  template<typename... Args>
     requires std::constructible_from<value_type, Args...>
   auto emplace_back(Args&&... args) -> reference {
     grow_to_fit();
     return *std::construct_at(head_++, std::forward<Args>(args)...);
   }
 
-  void push_back(const value_type& value) requires copy_constructible<value_type> {
-    (void)emplace_back(value);
+  void push_back(const value_type& value)
+      requires copy_constructible<value_type> {
+    static_cast<void>(emplace_back(value));
   }
 
-  void push_back(value_type&& value) requires move_constructible<value_type> {
-    (void)emplace_back(std::forward<value_type>(value));
+  void push_back(value_type&& value)
+      requires move_constructible<value_type> {
+    static_cast<void>(emplace_back(std::forward<value_type>(value)));
   }
 
   void pop_back() {
@@ -329,21 +352,23 @@ class vector_base {
     head_ -= count;
   }
 
- protected:
+protected:
   using storage = std::aligned_storage_t<sizeof(value_type), alignof(value_type)>;
 
-  void construct(size_type count, const value_type& value) requires copy_constructible<value_type> {
+  void construct(size_type count, const value_type& value)
+      requires copy_constructible<value_type> {
     allocate(count);
     head_ = std::uninitialized_fill_n(begin(), count, value);
   }
 
-  void construct(size_type count) requires std::default_initializable<T> {
+  void construct(size_type count)
+      requires std::default_initializable<T> {
     allocate(count);
     head_ = std::uninitialized_value_construct_n(begin(), count);
   }
 
-  template <std::random_access_iterator I>
-    requires(std::constructible_from<value_type, std::iter_reference_t<I>>)
+  template<std::random_access_iterator I>
+    requires std::constructible_from<value_type, std::iter_reference_t<I>>
   void construct(I first, I last) {
     const auto distance = std::distance(first, last);
     assert(distance >= 0);
@@ -362,27 +387,9 @@ class vector_base {
   pointer data_{};
   pointer last_{};
 
- private:
+private:
   auto derived() -> Derived* {
     return static_cast<Derived*>(this);
-  }
-
-  template <typename... Args>
-    requires std::constructible_from<value_type, Args...>
-  void resize_impl(size_type size, Args&&... args) {
-    if (size > this->size()) {
-      if (size > capacity()) {
-        reallocate(size);
-      }
-      if constexpr (sizeof...(Args) == 0) {
-        std::uninitialized_value_construct(end(), begin() + size);
-      } else {
-        std::uninitialized_fill(end(), begin() + size, std::forward<Args>(args)...);
-      }
-    } else if (size < this->size()) {
-      std::destroy(begin() + size, end());
-    }
-    head_ = begin() + size;
   }
 
   void uninitialized_reserve(size_type capacity) {
@@ -450,14 +457,14 @@ class vector_base {
 
 }  // namespace detail
 
-template <typename T, std::size_t kSize = 0>
+template<typename T, std::size_t kSize = 0>
   requires move_constructible<T> || copy_constructible<T>
 class vector : private detail::vector_base<T, vector<T, kSize>> {
- private:
+private:
   friend class detail::vector_base<T, vector<T, kSize>>;
   using base = detail::vector_base<T, vector<T, kSize>>;
 
- public:
+public:
   using typename base::value_type;
   using typename base::size_type;
   using typename base::difference_type;
@@ -470,34 +477,41 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
   using typename base::reverse_iterator;
   using typename base::const_reverse_iterator;
 
-  vector() noexcept : base(stack(), stack(), stack() + kSize) {}
+  vector() noexcept
+    : base(stack(), stack(), stack() + kSize) {}
 
-  vector(size_type count, const value_type& value) requires copy_constructible<value_type>
+  vector(size_type count, const value_type& value)
+    requires copy_constructible<value_type>
       : vector() {
     construct(count, value);
   }
 
-  explicit vector(size_type count) requires std::default_initializable<T> : vector() {
+  explicit vector(size_type count)
+      requires std::default_initializable<T>
+      : vector() {
     construct(count);
   }
 
-  template <std::random_access_iterator I>
-    requires(std::constructible_from<value_type, std::iter_reference_t<I>>)
+  template<std::random_access_iterator I>
+    requires std::constructible_from<value_type, std::iter_reference_t<I>>
   vector(I first, I last) : vector() {
     construct(first, last);
   }
 
-  vector(const vector& other) requires copy_constructible<value_type>
+  vector(const vector& other)
+      requires copy_constructible<value_type>
       : vector(other.begin(), other.end()) {}
 
   vector(vector&& other) : vector() {
     move(std::forward<vector>(other));
   }
 
-  vector(std::initializer_list<value_type> init) requires copy_constructible<value_type>
+  vector(std::initializer_list<value_type> init)
+      requires copy_constructible<value_type>
       : vector(init.begin(), init.end()) {}
 
-  auto operator=(const vector& other) -> vector& requires copy_constructible<value_type> {
+  auto operator=(const vector& other) -> vector&
+      requires copy_constructible<value_type> {
     if (this != &other) [[likely]] {
       assign(other.begin(), other.end());
     }
@@ -513,8 +527,8 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
     return *this;
   }
 
-  auto operator=(std::initializer_list<value_type> init)
-      -> vector& requires copy_constructible<value_type> {
+  auto operator=(std::initializer_list<value_type> init) -> vector&
+      requires copy_constructible<value_type> {
     assign(init.begin(), init.end());
     return *this;
   }
@@ -552,7 +566,7 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
   using base::push_back;
   using base::pop_back;
 
- protected:
+protected:
   using typename base::storage;
 
   using base::construct;
@@ -561,7 +575,7 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
   using base::head_;
   using base::last_;
 
- private:
+private:
   auto stack() -> pointer {
     return reinterpret_cast<pointer>(stack_);
   }
@@ -599,14 +613,14 @@ class vector : private detail::vector_base<T, vector<T, kSize>> {
   storage stack_[kSize];
 };
 
-template <typename T>
+template<typename T>
   requires move_constructible<T> || copy_constructible<T>
 class vector<T, 0> : private detail::vector_base<T, vector<T>> {
- private:
+private:
   friend class detail::vector_base<T, vector<T>>;
   using base = detail::vector_base<T, vector<T>>;
 
- public:
+public:
   using typename base::value_type;
   using typename base::size_type;
   using typename base::difference_type;
@@ -621,31 +635,37 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
 
   vector() noexcept = default;
 
-  vector(size_type count, const value_type& value) requires copy_constructible<value_type> {
+  vector(size_type count, const value_type& value)
+      requires copy_constructible<value_type> {
     construct(count, value);
   }
 
-  explicit vector(size_type count) requires std::default_initializable<T> {
+  explicit vector(size_type count)
+      requires std::default_initializable<T> {
     construct(count);
   }
 
-  template <std::random_access_iterator I>
-    requires(std::constructible_from<value_type, std::iter_reference_t<I>>)
+  template<std::random_access_iterator I>
+    requires std::constructible_from<value_type, std::iter_reference_t<I>>
   vector(I first, I last) {
     construct(first, last);
   }
 
-  vector(const vector& other) requires copy_constructible<value_type>
+  vector(const vector& other)
+      requires copy_constructible<value_type>
       : vector(other.begin(), other.end()) {}
 
-  vector(vector&& other) noexcept : base(other.data_, other.head_, other.last_) {
+  vector(vector&& other) noexcept
+      : base(other.data_, other.head_, other.last_) {
     other.reset();
   }
 
-  vector(std::initializer_list<value_type> init) requires copy_constructible<value_type>
+  vector(std::initializer_list<value_type> init)
+      requires copy_constructible<value_type>
       : vector(init.begin(), init.end()) {}
 
-  auto operator=(const vector& other) -> vector& requires copy_constructible<value_type> {
+  auto operator=(const vector& other) -> vector&
+      requires copy_constructible<value_type> {
     if (this != &other) [[likely]] {
       assign(other.begin(), other.end());
     }
@@ -663,8 +683,8 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
     return *this;
   }
 
-  auto operator=(std::initializer_list<value_type> init)
-      -> vector& requires copy_constructible<value_type> {
+  auto operator=(std::initializer_list<value_type> init) -> vector&
+      requires copy_constructible<value_type> {
     assign(init.begin(), init.end());
     return *this;
   }
@@ -703,14 +723,14 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
   using base::push_back;
   using base::pop_back;
 
- protected:
+protected:
   using base::construct;
   using base::destruct;
   using base::data_;
   using base::head_;
   using base::last_;
 
- private:
+private:
   auto heap_allocated() const -> bool {
     return data_;
   }
@@ -722,17 +742,17 @@ class vector<T, 0> : private detail::vector_base<T, vector<T>> {
   }
 };
 
-template <typename T, std::size_t kSize>
+template<typename T, std::size_t kSize>
 void swap(vector<T, kSize>& a, vector<T, kSize>& b) {
   a.swap(b);
 }
 
-template <typename T, std::size_t kSizeA, std::size_t kSizeB>
+template<typename T, std::size_t kSizeA, std::size_t kSizeB>
 auto operator==(const vector<T, kSizeA>& a, const vector<T, kSizeB>& b) -> bool {
   return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin());
 }
 
-template <typename T, std::size_t kSizeA, std::size_t kSizeB>
+template<typename T, std::size_t kSizeA, std::size_t kSizeB>
 auto operator!=(const vector<T, kSizeA>& a, const vector<T, kSizeB>& b) -> bool {
   return !(a == b);
 }

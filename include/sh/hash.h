@@ -24,7 +24,6 @@ inline auto murmur(const void* buffer, u64 size, u64 seed) -> u64 {
     hash *= kM;
   }
 
-  // clang-format off
   auto remaining = reinterpret_cast<const u8*>(data);
   switch (size & 0x7) {
     case 7: hash ^= static_cast<u64>(remaining[6]) << 48; [[fallthrough]];
@@ -36,7 +35,6 @@ inline auto murmur(const void* buffer, u64 size, u64 seed) -> u64 {
     case 1: hash ^= static_cast<u64>(remaining[0]) <<  0;
             hash *= kM;
   }
-  // clang-format on
 
   hash ^= hash >> kR;
   hash *= kM;
@@ -45,12 +43,12 @@ inline auto murmur(const void* buffer, u64 size, u64 seed) -> u64 {
   return hash;
 }
 
-template <typename T>
+template<typename T>
 auto hash(const T& value) -> u64 {
   return murmur(&value, sizeof(T), 0);
 }
 
-template <forward_iterator I, sentinel_for<I> S>
+template<forward_iterator I, sentinel_for<I> S>
 auto hash(I first, S last) -> u64 {
   u64 seed = 0;
   while (first != last) {

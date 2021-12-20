@@ -16,7 +16,7 @@ namespace sh {
 
 namespace {
 
-template <formattable T>
+template<formattable T>
 auto repr(const T& value) -> std::string {
   if constexpr (std::convertible_to<T, std::string_view>) {
     return fmt::format(R"("{}")", std::string_view{value});
@@ -45,22 +45,21 @@ inline auto trim(std::string_view str) -> std::string_view {
   return str.substr(first, last - first + 1);
 }
 
-template <typename T>
+template<typename T>
 struct value_type {
   using type = T;
 };
 
-template <typename T>
+template<typename T>
 struct value_type<std::optional<T>> {
   using type = T;
 };
 
-template <typename T>
+template<typename T>
 using value_type_t = typename value_type<T>::type;
 
-template <typename T>
-concept argument_type =
-    std::default_initializable<value_type_t<T>> && std::copy_constructible<value_type_t<T>> &&
+template<typename T>
+concept argument_type = std::default_initializable<value_type_t<T>> && std::copy_constructible<value_type_t<T>> &&
     parsable<value_type_t<T>> && formattable<value_type_t<T>>;
 
 }  // namespace
@@ -68,8 +67,9 @@ concept argument_type =
 class description : public std::string_view {};
 
 class basic_argument {
- public:
-  basic_argument(const std::vector<std::string_view>& names) : names(names) {}
+public:
+  basic_argument(const std::vector<std::string_view>& names)
+      : names(names) {}
 
   auto required() const -> bool {
     return !(optional() || default_value.has_value());
@@ -82,12 +82,12 @@ class basic_argument {
   auto usage() const -> std::string {
     std::string usage(names.front());
     if (positional()) {
-      usage = "<" + usage + ">";
+      usage = fmt::format("<{}>", usage);
     } else if (!boolean()) {
       usage.append(" <value>");
     }
     if (optional() || default_value.has_value()) {
-      usage = "[" + usage + "]";
+      usage = fmt::format("[{}]", usage);
     }
     return usage;
   }
@@ -113,7 +113,7 @@ class basic_argument {
   std::any default_value;
   std::vector<std::string_view> names;
 
- protected:
+protected:
   void expected_data() {
     throw std::runtime_error(fmt::format("expected data for argument: {}", names.front()));
   }
@@ -126,9 +126,9 @@ class basic_argument {
   std::string_view description_;
 };
 
-template <argument_type T>
+template<argument_type T>
 class argument final : public basic_argument {
- public:
+public:
   using basic_argument::basic_argument;
 
   auto operator|(sh::description description) -> argument<T>& {
@@ -136,7 +136,7 @@ class argument final : public basic_argument {
     return *this;
   }
 
-  template <std::convertible_to<T> U>
+  template<std::convertible_to<T> U>
   auto operator|(const U& data) -> argument<T>& {
     const T value(data);
     default_value_repr_ = repr(value);
@@ -170,9 +170,9 @@ class argument final : public basic_argument {
   }
 };
 
-template <typename T>
+template<typename T>
 class argument<std::optional<T>> final : public basic_argument {
- public:
+public:
   using basic_argument::basic_argument;
 
   auto operator|(sh::description description) -> argument<std::optional<T>>& {
@@ -180,7 +180,7 @@ class argument<std::optional<T>> final : public basic_argument {
     return *this;
   }
 
-  template <std::convertible_to<T> U>
+  template<std::convertible_to<T> U>
   auto operator|(const U& data) -> argument<std::optional<T>>& {
     const T value(data);
     default_value_repr_ = repr(value);
@@ -215,10 +215,11 @@ class argument<std::optional<T>> final : public basic_argument {
 };
 
 class argument_parser {
- public:
-  argument_parser(std::string_view program) : program_(program) {}
+public:
+  argument_parser(std::string_view program)
+      : program_(program) {}
 
-  template <argument_type T, std::convertible_to<std::string_view>... Names>
+  template<argument_type T, std::convertible_to<std::string_view>... Names>
     requires not_empty<Names...>
   auto add(Names&&... names) -> argument<T>& {
     const auto views = {trim(names)...};
@@ -252,7 +253,7 @@ class argument_parser {
     validate();
   }
 
-  template <argument_type T>
+  template<argument_type T>
   auto get(std::string_view name) const -> T {
     if (const auto argument = find(name)) {
       if (argument->value.has_value()) {
@@ -298,7 +299,7 @@ class argument_parser {
     return help;
   }
 
- private:
+private:
   auto find(std::string_view name) const -> basic_argument* {
     name = trim(name);
     for (const auto& argument : arguments_) {
@@ -321,8 +322,7 @@ class argument_parser {
   void validate() {
     for (const auto& argument : arguments_) {
       if (argument->required() && !argument->value.has_value()) {
-        throw std::runtime_error(
-            fmt::format("missing required argument: {}", argument->names.front()));
+        throw std::runtime_error(fmt::format("missing required argument: {}", argument->names.front()));
       }
     }
   }

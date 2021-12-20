@@ -32,7 +32,7 @@ using sh::s64;
 
 namespace sh {
 
-template <typename... Args>
+template<typename... Args>
 auto test(std::string_view format, Args&&... args) {
   static std::vector<std::string> names;
   names.emplace_back(fmt::format(fmt::runtime(format), std::forward<Args>(args)...));

@@ -8,9 +8,7 @@
 
 auto main(int argc, char* argv[]) -> int;
 
-// clang-format off
 #pragma comment(linker, "/ENTRY:wmainCRTStartup")
-// clang-format on
 
 auto wmain(int argc, wchar_t* argv[]) -> int {
   static_assert(sizeof(std::unique_ptr<char[]>) == sizeof(char*));

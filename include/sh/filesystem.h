@@ -23,16 +23,16 @@ using namespace std::filesystem;
 
 namespace {
 
-template <typename T>
+template<typename T>
 concept byte_pointer = std::is_pointer_v<T> && sizeof(std::remove_pointer_t<T>) == sizeof(char);
 
-template <typename T>
+template<typename T>
 concept contiguous_byte_container = requires(T&& t) {
   { t.data() } -> byte_pointer;
   { t.size() } -> std::same_as<std::size_t>;
 };
 
-template <typename T>
+template<typename T>
 concept resizable = requires(T&& t) {
   t.resize(std::size_t{});
 };
@@ -41,7 +41,7 @@ concept resizable = requires(T&& t) {
 
 enum class status { ok, bad_file, bad_stream, bad_size };
 
-template <contiguous_byte_container Container>
+template<contiguous_byte_container Container>
 status read(const path& file, Container& dst) {
   std::ifstream stream(file, std::ios::binary);
   if (!stream.is_open()) {
@@ -65,13 +65,13 @@ status read(const path& file, Container& dst) {
   return status::ok;
 }
 
-template <contiguous_byte_container Container>
+template<contiguous_byte_container Container>
 std::tuple<status, Container> read(const path& file) {
   Container data{};
   return std::make_tuple(read(file, data), data);
 }
 
-template <contiguous_byte_container Container>
+template<contiguous_byte_container Container>
 status write(const path& file, const Container& src) {
   std::error_code ec;
   create_directories(file.parent_path(), ec);
@@ -132,14 +132,14 @@ inline path absolute(const path& path, std::error_code&) {
 
 }  // namespace sh::filesystem
 
-template <>
+template<>
 struct sh::parser<sh::filesystem::path> {
   auto parse(std::string_view data) -> std::optional<sh::filesystem::path> {
     return sh::filesystem::u8path(data).make_preferred();
   }
 };
 
-template <>
+template<>
 struct fmt::formatter<sh::filesystem::path> : fmt::formatter<std::string> {
   auto format(const sh::filesystem::path& path, fmt::format_context& ctx) {
     return fmt::formatter<std::string>::format(path.string(), ctx);

@@ -36,8 +36,9 @@ using range_reverse_reference_t = iter_reference_t<reverse_iterator_t<Range>>;
 
 template <forward_iterator I, sentinel_for<I> S>
 class range {
- public:
-  range(I begin, S end) : begin_(begin), end_(end) {}
+public:
+  range(I begin, S end)
+      : begin_(begin), end_(end) {}
 
   [[nodiscard]] auto begin() -> I {
     return begin_;
@@ -63,15 +64,16 @@ class range {
     return end_;
   }
 
- private:
+private:
   I begin_;
   S end_;
 };
 
 template <forward_iterator I, sentinel_for<I> S = std::default_sentinel_t>
 class sentinel_range {
- public:
-  sentinel_range(I begin) : begin_(begin) {}
+public:
+  sentinel_range(I begin)
+      : begin_(begin) {}
 
   [[nodiscard]] auto begin() -> I {
     return begin_;
@@ -97,7 +99,7 @@ class sentinel_range {
     return S{};
   }
 
- private:
+private:
   I begin_;
 };
 
@@ -113,13 +115,14 @@ auto reversed(Range& range) -> sh::range<reverse_iterator_t<Range>, reverse_sent
 
 template <std::integral Integral, forward_iterator I, sentinel_for<I> S>
 class enumerate_iterator {
- public:
+public:
   struct value_type {
     Integral index;
     iter_reference_t<I> value;
   };
 
-  enumerate_iterator(Integral index, I begin, S end) : index_(index), begin_(begin), end_(end) {}
+  enumerate_iterator(Integral index, I begin, S end)
+      : index_(index), begin_(begin), end_(end) {}
 
   auto operator*() -> value_type {
     return {index_, *begin_};
@@ -139,14 +142,14 @@ class enumerate_iterator {
     return begin_ != end_;
   }
 
- private:
+private:
   Integral index_;
   I begin_;
   S end_;
 };
 
 template <forward_range Range, std::integral Integral = std::size_t>
-auto enumerate(Range& range, Integral start = 0)
+auto enumerate(Range& range, Integral start = 0) 
     -> sentinel_range<enumerate_iterator<Integral, iterator_t<Range>, sentinel_t<Range>>> {
   return {{start, std::begin(range), std::end(range)}};
 }

@@ -4,13 +4,13 @@
 
 namespace sh {
 
-template <typename T, std::size_t kSize = 0>
+template<typename T, std::size_t kSize = 0>
   requires copy_constructible<T> || move_constructible<T>
 class stack : private vector<T, kSize> {
- private:
+private:
   using base = vector<T, kSize>;
 
- public:
+public:
   using typename base::value_type;
   using typename base::size_type;
   using typename base::difference_type;
@@ -64,15 +64,17 @@ class stack : private vector<T, kSize> {
     return end()[-index - 1];
   }
 
-  void push(const value_type& value) requires copy_constructible<value_type> {
+  void push(const value_type& value)
+      requires copy_constructible<value_type> {
     this->push_back(value);
   }
 
-  void push(value_type&& value) requires move_constructible<value_type> {
+  void push(value_type&& value)
+      requires move_constructible<value_type> {
     this->push_back(std::forward<value_type>(value));
   }
 
-  template <typename... Args>
+  template<typename... Args>
     requires std::constructible_from<value_type, Args...>
   auto emplace(Args&&... args) -> reference {
     return this->emplace_back(std::forward<Args>(args)...);
@@ -88,7 +90,8 @@ class stack : private vector<T, kSize> {
     this->pop_back(count);
   }
 
-  auto pop_value() -> value_type requires move_constructible<value_type> {
+  auto pop_value() -> value_type
+      requires move_constructible<value_type> {
     assert(!empty());
     auto value{std::move(top())};
     pop();
@@ -96,17 +99,17 @@ class stack : private vector<T, kSize> {
   }
 };
 
-template <typename T, std::size_t kSize>
+template<typename T, std::size_t kSize>
 void swap(stack<T, kSize>& a, stack<T, kSize>& b) {
   a.swap(b);
 }
 
-template <typename T, std::size_t kSizeA, std::size_t kSizeB>
+template<typename T, std::size_t kSizeA, std::size_t kSizeB>
 auto operator==(const stack<T, kSizeA>& a, const stack<T, kSizeB>& b) -> bool {
   return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin());
 }
 
-template <typename T, std::size_t kSizeA, std::size_t kSizeB>
+template<typename T, std::size_t kSizeA, std::size_t kSizeB>
 auto operator!=(const stack<T, kSizeA>& a, const stack<T, kSizeB>& b) -> bool {
   return !(a == b);
 }

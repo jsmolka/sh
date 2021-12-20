@@ -3,14 +3,14 @@
 #include "common.h"
 #include "common_types.h"
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 auto operator<<(std::ostream& out, const sh::stack<T, N>& vector) -> std::ostream& {
   return out << fmt::format("[{}]", fmt::join(vector, ", "));
 }
 
 namespace {
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests {
   using stack = sh::stack<T, N>;
 
@@ -19,7 +19,7 @@ struct tests {
   }
 };
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests_accessors : tests<T, N> {
   using typename tests<T, N>::stack;
   using tests<T, N>::test;
@@ -47,7 +47,7 @@ struct tests_accessors : tests<T, N> {
   }
 };
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests_push : tests<T, N> {
   using typename tests<T, N>::stack;
   using tests<T, N>::test;
@@ -85,7 +85,7 @@ struct tests_push : tests<T, N> {
   }
 };
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests_emplace : tests<T, N> {
   using typename tests<T, N>::stack;
   using tests<T, N>::test;
@@ -103,7 +103,7 @@ struct tests_emplace : tests<T, N> {
   }
 };
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests_pop : tests<T, N> {
   using typename tests<T, N>::stack;
   using tests<T, N>::test;
@@ -134,7 +134,7 @@ struct tests_pop : tests<T, N> {
   }
 };
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests_pop_value : tests<T, N> {
   using typename tests<T, N>::stack;
   using tests<T, N>::test;
@@ -152,7 +152,7 @@ struct tests_pop_value : tests<T, N> {
   }
 };
 
-template <template <typename, std::size_t> typename Test, typename T>
+template<template<typename, std::size_t> typename Test, typename T>
 void run() {
   Test<T, 0>::run();
   Test<T, 1>::run();
@@ -161,7 +161,7 @@ void run() {
   Test<T, 8>::run();
 }
 
-template <template <typename, std::size_t> typename Test>
+template<template<typename, std::size_t> typename Test>
 void run() {
   run<Test, int>();
   run<Test, type1>();

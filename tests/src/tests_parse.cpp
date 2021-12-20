@@ -6,18 +6,18 @@
 
 namespace {
 
-template <typename T>
+template<typename T>
 struct tests {
   static auto test(std::string_view what) {
     return sh::test("parse<{}>::{}", typeid(T).name(), what);
   }
 };
 
-template <typename T>
+template<typename T>
 struct tests_integral : tests<T> {
   using tests<T>::test;
 
-  template <typename String, typename Format>
+  template<typename String, typename Format>
   static void linear(Format format) {
     using counter = std::conditional_t<std::is_signed_v<T>, s64, u64>;
 
@@ -75,11 +75,11 @@ struct tests_integral : tests<T> {
   }
 };
 
-template <typename T>
+template<typename T>
 struct tests_float : tests<T> {
   using tests<T>::test;
 
-  template <typename String>
+  template<typename String>
   static void linear() {
     for (auto expected = static_cast<T>(-100.0); expected < 100.0; expected += 10.1232456789) {
       const auto string = fmt::format("{:f}", expected);

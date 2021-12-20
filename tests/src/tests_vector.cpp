@@ -3,14 +3,14 @@
 #include "common.h"
 #include "common_types.h"
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 auto operator<<(std::ostream& out, const sh::vector<T, N>& vector) -> std::ostream& {
   return out << fmt::format("[{}]", fmt::join(vector, ", "));
 }
 
 namespace {
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests {
   using vector = sh::vector<T, N>;
 
@@ -23,7 +23,7 @@ struct tests {
   }
 };
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests_constructor : public tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
@@ -143,7 +143,7 @@ struct tests_constructor : public tests<T, N> {
   }
 };
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests_comparison_operator : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
@@ -170,7 +170,7 @@ struct tests_comparison_operator : tests<T, N> {
   }
 };
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests_assign : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
@@ -228,7 +228,7 @@ struct tests_assign : tests<T, N> {
   }
 };
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests_assignment_operator : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
@@ -323,7 +323,7 @@ struct tests_assignment_operator : tests<T, N> {
   }
 };
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests_accessors : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::test;
@@ -393,7 +393,7 @@ struct tests_accessors : tests<T, N> {
   }
 };
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests_reserve : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
@@ -415,7 +415,7 @@ struct tests_reserve : tests<T, N> {
   }
 };
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests_shrink_to_fit : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
@@ -439,7 +439,7 @@ struct tests_shrink_to_fit : tests<T, N> {
   }
 };
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests_clear : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
@@ -462,7 +462,7 @@ struct tests_clear : tests<T, N> {
   }
 };
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests_emplace : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::test;
@@ -486,7 +486,7 @@ struct tests_emplace : tests<T, N> {
   }
 };
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests_insert : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
@@ -646,7 +646,7 @@ struct tests_insert : tests<T, N> {
   }
 };
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests_erase : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::test;
@@ -737,7 +737,7 @@ struct tests_erase : tests<T, N> {
   }
 };
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests_resize : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
@@ -782,7 +782,7 @@ struct tests_resize : tests<T, N> {
   }
 };
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests_emplace_back : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
@@ -828,7 +828,7 @@ struct tests_emplace_back : tests<T, N> {
   }
 };
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests_push_back : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
@@ -867,7 +867,7 @@ struct tests_push_back : tests<T, N> {
   }
 };
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests_pop_back : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
@@ -895,7 +895,7 @@ struct tests_pop_back : tests<T, N> {
   }
 };
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests_swap : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
@@ -925,7 +925,7 @@ struct tests_swap : tests<T, N> {
   }
 };
 
-template <typename T, std::size_t N>
+template<typename T, std::size_t N>
 struct tests_typenames : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::test;
@@ -948,7 +948,7 @@ struct tests_typenames : tests<T, N> {
   }
 };
 
-template <template <typename, std::size_t> typename Test, typename T>
+template<template<typename, std::size_t> typename Test, typename T>
 void run() {
   Test<T, 0>::run();
   Test<T, 1>::run();
@@ -957,7 +957,7 @@ void run() {
   Test<T, 8>::run();
 }
 
-template <template <typename, std::size_t> typename Test>
+template<template<typename, std::size_t> typename Test>
 void run() {
   run<Test, int>();
   run<Test, type1>();

@@ -70,7 +70,7 @@ struct type4 {
   std::unique_ptr<int> value;
 };
 
-template <sh::any_of<type1, type2, type3, type4> T>
+template<sh::any_of<type1, type2, type3, type4> T>
 auto operator<<(std::ostream& out, const T& value) -> std::ostream& {
   return out << value.value;
 }

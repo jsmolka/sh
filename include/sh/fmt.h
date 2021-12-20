@@ -24,8 +24,7 @@
 
 namespace sh {
 
-template <typename T, typename Char = char>
-concept formattable =
-    fmt::is_formattable<T>::value || fmt::has_formatter<T, fmt::buffer_context<Char>>::value;
+template<typename T, typename Char = char>
+concept formattable = fmt::is_formattable<T>::value || fmt::has_formatter<T, fmt::buffer_context<Char>>::value;
 
 }  // namespace sh
