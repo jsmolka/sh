@@ -478,7 +478,7 @@ public:
   using typename base::const_reverse_iterator;
 
   vector() noexcept
-    : base(stack(), stack(), stack() + kSize) {}
+      : base(stack(), stack(), stack() + kSize) {}
 
   vector(size_type count, const value_type& value)
     requires copy_constructible<value_type>
