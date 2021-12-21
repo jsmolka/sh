@@ -5,17 +5,17 @@
 #  define FMT_HEADER_ONLY_DEFINED
 #endif
 
-#include <sh/fmt/args.h>
-#include <sh/fmt/chrono.h>
-#include <sh/fmt/color.h>
-#include <sh/fmt/compile.h>
-#include <sh/fmt/core.h>
-#include <sh/fmt/format.h>
-#include <sh/fmt/os.h>
-#include <sh/fmt/ostream.h>
-#include <sh/fmt/printf.h>
-#include <sh/fmt/ranges.h>
-#include <sh/fmt/xchar.h>
+#include <sh/deps/fmt/include/fmt/args.h>
+#include <sh/deps/fmt/include/fmt/chrono.h>
+#include <sh/deps/fmt/include/fmt/color.h>
+#include <sh/deps/fmt/include/fmt/compile.h>
+#include <sh/deps/fmt/include/fmt/core.h>
+#include <sh/deps/fmt/include/fmt/format.h>
+#include <sh/deps/fmt/include/fmt/os.h>
+#include <sh/deps/fmt/include/fmt/ostream.h>
+#include <sh/deps/fmt/include/fmt/printf.h>
+#include <sh/deps/fmt/include/fmt/ranges.h>
+#include <sh/deps/fmt/include/fmt/xchar.h>
 
 #ifdef FMT_HEADER_ONLY_DEFINED
 #  undef FMT_HEADER_ONLY

@@ -1,3 +1,9 @@
-[submodule "tests/modules/ut"]
-  path = tests/modules/ut
+[submodule "include/sh/deps/fast_float"]
+  path = include/sh/deps/fast_float
+  url = https://github.com/fastfloat/fast_float
+[submodule "include/sh/deps/fmt"]
+  path = include/sh/deps/fmt
+  url = https://github.com/fmtlib/fmt
+[submodule "tests/deps/ut"]
+  path = tests/deps/ut
   url = https://github.com/boost-ext/ut

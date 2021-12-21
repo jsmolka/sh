@@ -6,7 +6,7 @@
 #include <string>
 #include <string_view>
 
-#include <sh/fast_float/fast_float.h>
+#include <sh/deps/fast_float/include/fast_float/fast_float.h>
 #include <sh/int.h>
 
 namespace std {
