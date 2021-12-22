@@ -59,8 +59,7 @@ template<typename T>
 using value_type_t = typename value_type<T>::type;
 
 template<typename T>
-concept argument_type = std::default_initializable<value_type_t<T>> && std::copy_constructible<value_type_t<T>> &&
-    parsable<value_type_t<T>> && formattable<value_type_t<T>>;
+concept argument_type = parsable<value_type_t<T>> && formattable<value_type_t<T>>;
 
 }  // namespace
 
@@ -80,16 +79,16 @@ public:
   }
 
   auto usage() const -> std::string {
-    std::string usage(names.front());
+    std::string string(names.front());
     if (positional()) {
-      usage = fmt::format("<{}>", usage);
+      string = fmt::format("<{}>", string);
     } else if (!boolean()) {
-      usage.append(" <value>");
+      string.append(" <value>");
     }
-    if (optional() || default_value.has_value()) {
-      usage = fmt::format("[{}]", usage);
+    if (!required()) {
+      string = fmt::format("[{}]", string);
     }
-    return usage;
+    return string;
   }
 
   auto description() const -> std::string {
