@@ -15,15 +15,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\tests_argparse.cpp" />
-    <ClCompile Include="src\tests_array.cpp" />
-    <ClCompile Include="src\tests_filesystem.cpp" />
-    <ClCompile Include="src\tests_hash.cpp" />
-    <ClCompile Include="src\tests_parse.cpp" />
-    <ClCompile Include="src\tests_ranges.cpp" />
-    <ClCompile Include="src\tests_stack.cpp" />
-    <ClCompile Include="src\tests_utility.cpp" />
-    <ClCompile Include="src\tests_vector.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\tests_argparse.h" />
@@ -35,8 +26,8 @@
     <ClInclude Include="src\tests_stack.h" />
     <ClInclude Include="src\tests_utility.h" />
     <ClInclude Include="src\tests_vector.h" />
-    <ClInclude Include="src\common_types.h" />
-    <ClInclude Include="src\common.h" />
+    <ClInclude Include="src\types.h" />
+    <ClInclude Include="src\ut.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
