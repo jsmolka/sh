@@ -259,9 +259,12 @@ public:
         return std::any_cast<T>(argument->value);
       } else if (argument->default_value.has_value()) {
         return std::any_cast<T>(argument->default_value);
+      } else if constexpr (is_specialization_v<T, std::optional>) {
+        return std::nullopt;
       }
+      throw std::runtime_error(fmt::format("no argument data: {}", name));
     }
-    return {};
+    throw std::runtime_error(fmt::format("unknown argument:", name));
   }
 
   auto help() const -> std::string {
