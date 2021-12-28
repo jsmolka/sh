@@ -228,12 +228,18 @@ public:
 
   void parse(int argc, const char* const* argv) {
     auto index = 1;
-    auto positional = 0;
+    auto positional_index = 0;
+    auto positional_force = false;
     while (index < argc) {
       const auto data = trim(argv[index++]);
+      if (data == "--" && !positional_force) {
+        positional_force = true;
+        continue;
+      }
+
       const auto pair = split(data, '=');
       const auto argument = find(pair.front());
-      if (argument && !argument->positional()) {
+      if (argument && !argument->positional() && !positional_force) {
         if (pair.size() == 2) {
           argument->parse(pair.back());
         } else if (index < argc && !argument->boolean()) {
@@ -242,7 +248,7 @@ public:
           argument->parse({});
         }
       } else {
-        if (const auto argument = find(positional++)) {
+        if (const auto argument = find(positional_index++)) {
           argument->parse(data);
         } else {
           throw std::runtime_error(fmt::format("unmatched positional argument: {}", data));

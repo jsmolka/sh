@@ -58,6 +58,17 @@ inline suite _ = [] {
     }));
   };
 
+  "argparse force positional"_test = [] {
+    const char* argv[] = {"program.exe", "--", "-x", "--"};
+    sh::argument_parser parser("program");
+    parser.add<int>("-x") | 0;
+    parser.add<std::string_view>("y");
+    parser.add<std::string_view>("z");
+    parser.parse(std::size(argv), argv);
+    expect(eq(parser.get<std::string_view>("y"), "-x"sv));
+    expect(eq(parser.get<std::string_view>("z"), "--"sv));
+  };
+
   "argparse missing keyword argument"_test = [] {
     const char* argv[] = {"program.exe"};
     sh::argument_parser parser("program");
