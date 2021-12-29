@@ -26,7 +26,7 @@ struct tests {
 };
 
 template<typename T, std::size_t N>
-struct tests_constructor : public tests<T, N> {
+struct tests_constructor : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
   using tests<T, N>::test;

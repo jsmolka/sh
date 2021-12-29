@@ -113,14 +113,6 @@ public:
   std::vector<std::string_view> names;
 
 protected:
-  void expected_data() {
-    throw std::runtime_error(fmt::format("expected data for argument: {}", names.front()));
-  }
-
-  void cannot_parse(std::string_view data) {
-    throw std::runtime_error(fmt::format("cannot parse argument data: {}", data));
-  }
-
   std::string default_value_repr_;
   std::string_view description_;
 };
@@ -128,6 +120,7 @@ protected:
 template<argument_type T>
 class argument final : public basic_argument {
 public:
+  using value_type = value_type_t<T>;
   using basic_argument::basic_argument;
 
   auto operator|(sh::description description) -> argument<T>& {
@@ -135,79 +128,35 @@ public:
     return *this;
   }
 
-  template<std::convertible_to<T> U>
+  template<std::convertible_to<value_type> U>
   auto operator|(const U& data) -> argument<T>& {
-    const T value(data);
+    const value_type value(data);
     default_value_repr_ = repr(value);
-    default_value = value;
+    default_value = T{value};
     return *this;
   }
 
   auto boolean() const -> bool {
-    return std::same_as<T, bool>;
+    return std::same_as<value_type, bool>;
   }
 
   auto optional() const -> bool {
-    return false;
+    return is_specialization_v<T, std::optional>;
   }
 
   void parse(std::string_view data) {
     if (data == std::string_view()) {
-      if constexpr (std::same_as<T, bool>) {
-        value = true;
+      if constexpr (std::same_as<value_type, bool>) {
+        value = T(true);
       } else {
-        expected_data();
+        throw std::runtime_error(fmt::format("expected data for argument: {}", names.front()));
       }
     } else {
       data = trim(data);
-      if (const auto result = sh::parse<T>(data)) {
-        value = *result;
+      if (const auto result = sh::parse<value_type>(data)) {
+        value = T{*result};
       } else {
-        cannot_parse(data);
-      }
-    }
-  }
-};
-
-template<typename T>
-class argument<std::optional<T>> final : public basic_argument {
-public:
-  using basic_argument::basic_argument;
-
-  auto operator|(sh::description description) -> argument<std::optional<T>>& {
-    description_ = description;
-    return *this;
-  }
-
-  template<std::convertible_to<T> U>
-  auto operator|(const U& data) -> argument<std::optional<T>>& {
-    const T value(data);
-    default_value_repr_ = repr(value);
-    default_value = std::optional(value);
-    return *this;
-  }
-
-  auto boolean() const -> bool {
-    return std::same_as<T, bool>;
-  }
-
-  auto optional() const -> bool {
-    return true;
-  }
-
-  void parse(std::string_view data) {
-    if (data == std::string_view()) {
-      if constexpr (std::same_as<T, bool>) {
-        value = std::optional(true);
-      } else {
-        expected_data();
-      }
-    } else {
-      data = trim(data);
-      if (const auto result = sh::parse<T>(data)) {
-        value = result;
-      } else {
-        cannot_parse(data);
+        throw std::runtime_error(fmt::format("cannot parse argument data: {}", data));
       }
     }
   }
