@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <sh/concepts.h>
+#include <sh/error.h>
 #include <sh/filesystem.h>
 #include <sh/fmt.h>
 #include <sh/parse.h>
@@ -149,14 +150,14 @@ public:
       if constexpr (std::same_as<value_type, bool>) {
         value = T(true);
       } else {
-        throw std::runtime_error(fmt::format("expected data for argument: {}", names.front()));
+        throw error("expected data for argument: {}", names.front());
       }
     } else {
       data = trim(data);
       if (const auto result = sh::parse<value_type>(data)) {
         value = T{*result};
       } else {
-        throw std::runtime_error(fmt::format("cannot parse argument data: {}", data));
+        throw error("cannot parse argument data: {}", data);
       }
     }
   }
@@ -200,7 +201,7 @@ public:
         if (const auto argument = find(positional_index++)) {
           argument->parse(data);
         } else {
-          throw std::runtime_error(fmt::format("unmatched positional argument: {}", data));
+          throw error("unmatched positional argument: {}", data);
         }
       }
     }
@@ -217,9 +218,9 @@ public:
       } else if constexpr (is_specialization_v<T, std::optional>) {
         return std::nullopt;
       }
-      throw std::runtime_error(fmt::format("no argument data: {}", name));
+      throw error("no argument data: {}", name);
     }
-    throw std::runtime_error(fmt::format("unknown argument:", name));
+    throw error("unknown argument:", name);
   }
 
   auto help() const -> std::string {
@@ -279,7 +280,7 @@ private:
   void validate() {
     for (const auto& argument : arguments_) {
       if (argument->required() && !argument->value.has_value()) {
-        throw std::runtime_error(fmt::format("missing required argument: {}", argument->names.front()));
+        throw error("missing required argument : {}", argument->names.front());
       }
     }
   }

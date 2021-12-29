@@ -481,7 +481,7 @@ public:
       : base(stack(), stack(), stack() + kSize) {}
 
   vector(size_type count, const value_type& value)
-    requires copy_constructible<value_type>
+      requires copy_constructible<value_type>
       : vector() {
     construct(count, value);
   }

@@ -15,6 +15,7 @@
     <ClInclude Include="sh\array.h" />
     <ClInclude Include="sh\concepts.h" />
     <ClInclude Include="sh\env.h" />
+    <ClInclude Include="sh\error.h" />
     <ClInclude Include="sh\filesystem.h" />
     <ClInclude Include="sh\fmt.h" />
     <ClInclude Include="sh\hash.h" />

@@ -66,5 +66,8 @@
     <ClInclude Include="sh\filesystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="sh\error.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
