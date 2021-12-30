@@ -113,6 +113,36 @@ inline suite _ = [] {
     expect(eq(parser.get<int>("-x"), 1));
     expect(eq(parser.get<int>("-y"), 2));
   };
+
+  "clap pointer"_test = [] {
+    const char* argv[] = {"program.exe", "-a", "1", "-e=5"};
+    int a;
+    int b;
+    int c;
+    std::optional<int> d;
+    std::optional<int> e;
+    sh::clap parser("program");
+    parser.add<decltype(a)>("-a") << &a;
+    parser.add<decltype(b)>("-b") << &b << 2;
+    parser.add<decltype(c)>("-c") << 3 << &c;
+    parser.add<decltype(d)>("-d") << 4 << &d;
+    parser.add<decltype(e)>("-e") << 5 << &e;
+    parser.parse(std::size(argv), argv);
+    expect(eq(a, 1));
+    expect(eq(b, 2));
+    expect(eq(c, 3));
+    expect(eq(*d, 4));
+    expect(eq(*e, 5));
+  };
+
+  "clap event"_test = [] {
+    const char* argv[] = {"program.exe", "-a", "1"};
+    sh::clap parser("program");
+    int a = 0;
+    parser.add<int>("-a") << [&](int value) { a = value; };
+    parser.parse(std::size(argv), argv);
+    expect(eq(a, 1));
+  };
 };
 
 }  // namespace tests_clap
