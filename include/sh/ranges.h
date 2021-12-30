@@ -38,7 +38,7 @@ template <forward_iterator I, sentinel_for<I> S>
 class range {
 public:
   range(I begin, S end)
-      : begin_(begin), end_(end) {}
+    : begin_(begin), end_(end) {}
 
   [[nodiscard]] auto begin() -> I {
     return begin_;
@@ -73,7 +73,7 @@ template <forward_iterator I, sentinel_for<I> S = std::default_sentinel_t>
 class sentinel_range {
 public:
   sentinel_range(I begin)
-      : begin_(begin) {}
+    : begin_(begin) {}
 
   [[nodiscard]] auto begin() -> I {
     return begin_;
@@ -122,7 +122,7 @@ public:
   };
 
   enumerate_iterator(Integral index, I begin, S end)
-      : index_(index), begin_(begin), end_(end) {}
+    : index_(index), begin_(begin), end_(end) {}
 
   auto operator*() -> value_type {
     return {index_, *begin_};

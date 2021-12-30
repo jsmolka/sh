@@ -31,7 +31,7 @@ public:
   vector_base() noexcept = default;
 
   vector_base(pointer data, pointer head, pointer last) noexcept
-      : data_(data), head_(head), last_(last) {}
+    : data_(data), head_(head), last_(last) {}
 
   ~vector_base() {
     destruct();
@@ -482,13 +482,13 @@ public:
 
   vector(size_type count, const value_type& value)
       requires copy_constructible<value_type>
-      : vector() {
+    : vector() {
     construct(count, value);
   }
 
   explicit vector(size_type count)
       requires std::default_initializable<T>
-      : vector() {
+    : vector() {
     construct(count);
   }
 
@@ -500,7 +500,7 @@ public:
 
   vector(const vector& other)
       requires copy_constructible<value_type>
-      : vector(other.begin(), other.end()) {}
+    : vector(other.begin(), other.end()) {}
 
   vector(vector&& other) : vector() {
     move(std::forward<vector>(other));
@@ -508,7 +508,7 @@ public:
 
   vector(std::initializer_list<value_type> init)
       requires copy_constructible<value_type>
-      : vector(init.begin(), init.end()) {}
+    : vector(init.begin(), init.end()) {}
 
   auto operator=(const vector& other) -> vector&
       requires copy_constructible<value_type> {
@@ -653,16 +653,16 @@ public:
 
   vector(const vector& other)
       requires copy_constructible<value_type>
-      : vector(other.begin(), other.end()) {}
+    : vector(other.begin(), other.end()) {}
 
   vector(vector&& other) noexcept
-      : base(other.data_, other.head_, other.last_) {
+    : base(other.data_, other.head_, other.last_) {
     other.reset();
   }
 
   vector(std::initializer_list<value_type> init)
       requires copy_constructible<value_type>
-      : vector(init.begin(), init.end()) {}
+    : vector(init.begin(), init.end()) {}
 
   auto operator=(const vector& other) -> vector&
       requires copy_constructible<value_type> {
