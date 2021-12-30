@@ -1,26 +1,26 @@
 #pragma once
 
-#include <sh/argparse.h>
+#include <sh/clap.h>
 
 #include "ut.h"
 
-namespace tests_argparse {
+namespace tests_clap {
 
 using namespace std::string_view_literals;
 
 inline suite _ = [] {
-  "argparse general"_test = [] {
+  "clap general"_test = [] {
     const char* argv[] = {"program.exe", "-a", "1", "-b=2", "-e", "5", "7", "test"};
-    sh::argument_parser parser("");
+    sh::clap parser("");
     parser.add<int>("-a");
     parser.add<int>("-b");
-    parser.add<int>("-c") | 3;
+    parser.add<int>("-c") << 3;
     parser.add<std::optional<int>>("-d");
     parser.add<std::optional<int>>("-e");
-    parser.add<std::optional<int>>("-f") | 6;
+    parser.add<std::optional<int>>("-f") << 6;
     parser.add<int>("g");
     parser.add<std::string_view>("h");
-    parser.add<int>("i") | 9;
+    parser.add<int>("i") << 9;
     parser.parse(std::size(argv), argv);
     expect(eq(parser.get<int>("-a"), 1));
     expect(eq(parser.get<int>("-b"), 2));
@@ -33,9 +33,9 @@ inline suite _ = [] {
     expect(eq(parser.get<int>("i"), 9));
   };
 
-  "argparse edge cases"_test = [] {
+  "clap edge cases"_test = [] {
     const char* argv[] = {"program.exe", "-a", "-b", "-c", "-d", "e"};
-    sh::argument_parser parser("");
+    sh::clap parser("");
     parser.add<bool>("-a");
     parser.add<bool>("-b");
     parser.add<std::string_view>("-c");
@@ -49,19 +49,19 @@ inline suite _ = [] {
     expect(eq(parser.get<std::string_view>("e"), "e"sv));
   };
 
-  "argparse missing argument value"_test = [] {
+  "clap missing argument value"_test = [] {
     const char* argv[] = {"program.exe", "-x"};
-    sh::argument_parser parser("program");
+    sh::clap parser("program");
     parser.add<int>("-x");
     expect(throws([&]() {
       parser.parse(std::size(argv), argv);
     }));
   };
 
-  "argparse force positional"_test = [] {
+  "clap force positional"_test = [] {
     const char* argv[] = {"program.exe", "--", "-x", "--"};
-    sh::argument_parser parser("program");
-    parser.add<int>("-x") | 0;
+    sh::clap parser("program");
+    parser.add<int>("-x") << 0;
     parser.add<std::string_view>("y");
     parser.add<std::string_view>("z");
     parser.parse(std::size(argv), argv);
@@ -69,44 +69,44 @@ inline suite _ = [] {
     expect(eq(parser.get<std::string_view>("z"), "--"sv));
   };
 
-  "argparse missing keyword argument"_test = [] {
+  "clap missing keyword argument"_test = [] {
     const char* argv[] = {"program.exe"};
-    sh::argument_parser parser("program");
+    sh::clap parser("program");
     parser.add<int>("-x");
     expect(throws([&]() {
       parser.parse(std::size(argv), argv);
     }));
   };
 
-  "argparse missing positional argument"_test = [] {
+  "clap missing positional argument"_test = [] {
     const char* argv[] = {"program.exe"};
-    sh::argument_parser parser("program");
+    sh::clap parser("program");
     parser.add<int>("x");
     expect(throws([&]() {
       parser.parse(std::size(argv), argv);
     }));
   };
 
-  "argparse wrong argument value type"_test = [] {
+  "clap wrong argument value type"_test = [] {
     const char* argv[] = {"program.exe", "-x", "wrong"};
-    sh::argument_parser parser("program");
+    sh::clap parser("program");
     parser.add<int>("-x");
     expect(throws([&]() {
       parser.parse(std::size(argv), argv);
     }));
   };
 
-  "argparse unmatched positional argument"_test = [] {
+  "clap unmatched positional argument"_test = [] {
     const char* argv[] = {"program.exe", "x"};
-    sh::argument_parser parser("program");
+    sh::clap parser("program");
     expect(throws([&]() {
       parser.parse(std::size(argv), argv);
     }));
   };
 
-  "argparse trim"_test = [] {
+  "clap trim"_test = [] {
     const char* argv[] = {"program.exe", " -x ", " 1 ", " -y = 2 "};
-    sh::argument_parser parser("program");
+    sh::clap parser("program");
     parser.add<int>("  -x  ");
     parser.add<int>("  -y  ");
     parser.parse(std::size(argv), argv);
@@ -115,4 +115,4 @@ inline suite _ = [] {
   };
 };
 
-}  // namespace tests_argparse
+}  // namespace tests_clap

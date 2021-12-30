@@ -1,5 +1,5 @@
-#include "tests_argparse.h"
 #include "tests_array.h"
+#include "tests_clap.h"
 #include "tests_filesystem.h"
 #include "tests_hash.h"
 #include "tests_parse.h"

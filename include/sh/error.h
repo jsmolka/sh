@@ -14,3 +14,10 @@ public:
 };
 
 }  // namespace sh
+
+template<>
+struct fmt::formatter<sh::error> : fmt::formatter<const char*> {
+  auto format(const sh::error& error, fmt::format_context& ctx) {
+    return fmt::formatter<const char*>::format(error.what(), ctx);
+  }
+};

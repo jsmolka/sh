@@ -17,7 +17,7 @@
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\tests_argparse.h" />
+    <ClInclude Include="src\tests_clap.h" />
     <ClInclude Include="src\tests_array.h" />
     <ClInclude Include="src\tests_filesystem.h" />
     <ClInclude Include="src\tests_hash.h" />
