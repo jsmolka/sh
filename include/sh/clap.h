@@ -57,6 +57,9 @@ struct value_type<std::optional<T>> {
 template<typename T>
 using value_type_t = typename value_type<T>::type;
 
+template<typename T>
+concept argument_type = parsable<value_type_t<T>> && formattable<value_type_t<T>>;
+
 }  // namespace
 
 class name : public std::string_view {};
@@ -71,17 +74,17 @@ public:
     return !names.front().starts_with('-');
   }
 
-  auto syntax() const -> std::string {
-    std::string syntax(names.front());
+  auto help() const -> std::string {
+    std::string string(names.front());
     if (positional()) {
-      syntax = fmt::format("<{}>", syntax);
+      string = fmt::format("<{}>", string);
     } else if (!boolean()) {
-      syntax = fmt::format("{} <{}>", syntax, name);
+      string = fmt::format("{} <{}>", string, name);
     }
     if (!required()) {
-      syntax = fmt::format("[{}]", syntax);
+      string = fmt::format("[{}]", string);
     }
-    return syntax;
+    return string;
   }
 
   auto description() const -> std::string {
@@ -90,7 +93,7 @@ public:
       strings.emplace_back(desc);
     }
     if (default_value_repr) {
-      strings.emplace_back(fmt::format("[default: {}]", *default_value_repr));
+      strings.emplace_back(fmt::format("(default: {})", *default_value_repr));
     }
     return fmt::to_string(fmt::join(strings, " "));
   }
@@ -106,7 +109,7 @@ public:
   std::optional<std::string> default_value_repr;
 };
 
-template<typename T>
+template<argument_type T>
 class argument final : public basic_argument {
 public:
   using value_type = value_type_t<T>;
@@ -114,10 +117,10 @@ public:
   using basic_argument::basic_argument;
 
   auto operator<<(T* pointer) -> argument& {
-    this->pointer = pointer;
     if (pointer && default_value) {
       *pointer = *default_value;
     }
+    this->pointer = pointer;
     return *this;
   }
 
@@ -150,12 +153,11 @@ public:
   }
 
   auto required() const -> bool final {
-    return !(is_specialization_v<T, std::optional> || default_value.has_value());
+    return !(is_specialization_v<T, std::optional> || default_value);
   }
 
   auto satisfied() const -> bool final {
-    // simpliy/remove?
-    return is_specialization_v<T, std::optional> || value.has_value() || default_value.has_value();
+    return !required() || value;
   }
 
   void parse(std::string_view data) final {
@@ -193,73 +195,23 @@ public:
 class clap {
 public:
   explicit clap(std::string_view program)
-    : program(program) {}
+    : program_(program) {}
 
-  template<typename T, std::convertible_to<std::string_view>... Names>
+  template<argument_type T, std::convertible_to<std::string_view>... Names>
     requires not_empty<Names...>
   auto add(Names&&... names) -> argument<T>& {
     const auto views = {trim(names)...};
-    arguments.push_back(std::make_unique<argument<T>>(views));
-    return *static_cast<argument<T>*>(arguments.back().get());
+    arguments_.push_back(std::make_unique<argument<T>>(views));
+    return *static_cast<argument<T>*>(arguments_.back().get());
   }
 
   void add_help() {
-    add<std::optional<bool>>("-h", "--help") << [this](bool value) {
+    add<std::optional<bool>>("-h", "--help") << desc("print help") << [this](bool value) {
       if (value) {
         fmt::print("{}\n", help());
         std::exit(0);
       }
     };
-  }
-
-  template<typename T>
-  auto get(std::string_view name) const -> T {
-    if (const auto argument = find(name)) {
-      sh::argument<T>* arg = static_cast<sh::argument<T>*>(argument);
-      if (arg->value) {
-        return *arg->value;
-      } else if (arg->default_value) {
-        return *arg->default_value;
-      } else if constexpr (is_specialization_v<T, std::optional>) {
-        return std::nullopt;
-      }
-      throw error("no argument data: {}", name);
-    }
-    throw error("unknown argument:", name);
-  }
-
-  auto help() const -> std::string {
-    std::vector<std::string> usage;
-    if (!program.empty()) {
-      usage.emplace_back(program);
-    }
-
-    std::size_t widest = 0;
-    std::vector<std::tuple<std::string, std::string, bool>> lines;
-    for (const auto& argument : arguments) {
-      const auto names = fmt::to_string(fmt::join(argument->names, ", "));
-      lines.emplace_back(names, argument->description(), argument->positional());
-      usage.emplace_back(argument->syntax());
-      widest = std::max(widest, names.size());
-    }
-
-    std::string keyword;
-    std::string positional;
-    for (const auto& [names, description, is_positional] : lines) {
-      auto& group = is_positional ? positional : keyword;
-      group.append(fmt::format("\n  {:<{}}{}", names, widest + 4, description));
-    }
-
-    auto help(fmt::format("usage:\n  {}", fmt::join(usage, " ")));
-    if (!keyword.empty()) {
-      help.append("\n\nkeyword arguments:");
-      help.append(keyword);
-    }
-    if (!positional.empty()) {
-      help.append("\n\npositional arguments:");
-      help.append(positional);
-    }
-    return help;
   }
 
   void parse(int argc, const char* const* argv) {
@@ -303,10 +255,59 @@ public:
     }
   }
 
+  template<argument_type T>
+  auto get(std::string_view name) const -> T {
+    if (const auto argument = static_cast<sh::argument<T>*>(find(name))) {
+      if (argument->value) {
+        return *argument->value;
+      } else if (argument->default_value) {
+        return *argument->default_value;
+      } else if constexpr (is_specialization_v<T, std::optional>) {
+        return std::nullopt;
+      }
+      throw error("no argument data: {}", name);
+    }
+    throw error("unknown argument:", name);
+  }
+
+  auto help() const -> std::string {
+    std::vector<std::string> usage;
+    if (!program_.empty()) {
+      usage.emplace_back(program_);
+    }
+
+    std::size_t widest = 0;
+    std::vector<std::tuple<std::string, std::string, bool>> lines;
+    for (const auto& argument : arguments_) {
+      const auto names = fmt::to_string(fmt::join(argument->names, ", "));
+      lines.emplace_back(names, argument->description(), argument->positional());
+      usage.emplace_back(argument->help());
+      widest = std::max(widest, names.size());
+    }
+
+    std::string keyword;
+    std::string positional;
+    for (const auto& [names, description, is_positional] : lines) {
+      auto& group = is_positional ? positional : keyword;
+      group.append(fmt::format("\n  {:<{}}{}", names, widest + 4, description));
+    }
+
+    auto help(fmt::format("usage:\n  {}", fmt::join(usage, " ")));
+    if (!keyword.empty()) {
+      help.append("\n\nkeyword arguments:");
+      help.append(keyword);
+    }
+    if (!positional.empty()) {
+      help.append("\n\npositional arguments:");
+      help.append(positional);
+    }
+    return help;
+  }
+
 private:
   auto find(std::string_view name) const -> basic_argument* {
     name = trim(name);
-    for (const auto& argument : arguments) {
+    for (const auto& argument : arguments_) {
       if (contains(argument->names, name)) {
         return argument.get();
       }
@@ -315,7 +316,7 @@ private:
   }
 
   auto find(std::size_t position) const -> basic_argument* {
-    for (const auto& argument : arguments) {
+    for (const auto& argument : arguments_) {
       if (argument->positional() && position-- == 0) {
         return argument.get();
       }
@@ -324,15 +325,15 @@ private:
   }
 
   void validate() {
-    for (const auto& argument : arguments) {
+    for (const auto& argument : arguments_) {
       if (!argument->satisfied()) {
         throw error("missing required argument: {}", argument->names.front());
       }
     }
   }
 
-  std::string_view program;
-  std::vector<std::unique_ptr<basic_argument>> arguments;
+  std::string_view program_;
+  std::vector<std::unique_ptr<basic_argument>> arguments_;
 };
 
 }  // namespace sh
