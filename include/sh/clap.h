@@ -7,7 +7,6 @@
 #include <sh/concepts.h>
 #include <sh/error.h>
 #include <sh/filesystem.h>
-#include <sh/fmt.h>
 #include <sh/parse.h>
 #include <sh/ranges.h>
 
@@ -62,144 +61,172 @@ concept argument_type = parsable<value_type_t<T>> && formattable<value_type_t<T>
 
 }  // namespace
 
-class name : public std::string_view {};
-class desc : public std::string_view {};
+class clap;
 
 class basic_argument {
 public:
-  explicit basic_argument(const std::vector<std::string_view>& names)
-    : names(names) {}
+  friend class clap;
 
+  explicit basic_argument(const std::vector<std::string_view>& names)
+    : names_(names) {}
+
+protected:
+  std::vector<std::string_view> names_;
+  std::string_view name_ = "value";
+  std::string_view desc_;
+  std::string default_repr_;
+
+private:
   auto positional() const -> bool {
-    return !names.front().starts_with('-');
+    for (const auto& name : names_) {
+      if (name.starts_with('-')) {
+        return false;
+      }
+    }
+    return true;
   }
 
-  auto help() const -> std::string {
-    std::string string(names.front());
+  auto names() const -> std::string {
+    return fmt::to_string(fmt::join(names_, ", "));
+  }
+
+  auto usage() const -> std::string {
+    std::string usage(names_.front());
     if (positional()) {
-      string = fmt::format("<{}>", string);
+      usage = fmt::format("<{}>", usage);
     } else if (!boolean()) {
-      string = fmt::format("{} <{}>", string, name);
+      usage = fmt::format("{} <{}>", usage, name_);
     }
-    if (!required()) {
-      string = fmt::format("[{}]", string);
+    if (optional()) {
+      usage = fmt::format("[{}]", usage);
     }
-    return string;
+    return usage;
   }
 
   auto description() const -> std::string {
-    std::vector<std::string> strings;
-    if (!desc.empty()) {
-      strings.emplace_back(desc);
+    std::vector<std::string> parts;
+    if (!desc_.empty()) {
+      parts.emplace_back(desc_);
     }
-    if (default_value_repr) {
-      strings.emplace_back(fmt::format("(default: {})", *default_value_repr));
+    if (!default_repr_.empty()) {
+      parts.emplace_back(fmt::format("(default: {})", default_repr_));
     }
-    return fmt::to_string(fmt::join(strings, " "));
+    return fmt::to_string(fmt::join(parts, " "));
   }
 
   virtual auto boolean() const -> bool = 0;
-  virtual auto required() const -> bool = 0;
+  virtual auto optional() const -> bool = 0;
   virtual void validate() const = 0;
-  virtual void parse(std::string_view) = 0;
-
-  std::vector<std::string_view> names;
-  std::string_view name = "value";
-  std::string_view desc;
-  std::optional<std::string> default_value_repr;
+  virtual void parse(std::optional<std::string_view>) = 0;
 };
+
+class name : public std::string_view {};
+class desc : public std::string_view {};
 
 template<argument_type T>
 class argument final : public basic_argument {
 public:
+  friend class clap;
+
   using value_type = value_type_t<T>;
 
   explicit argument(const std::vector<std::string_view>& names)
     : basic_argument(names) {
-    events.emplace_back([this](const value_type& value) {
-      if (pointer) *pointer = value;
-    });
-    events.emplace_back([this](const value_type& value) {
-      this->value = value;
-    });
+    *this << [this](const value_type& value) {
+      if (pointer_) *pointer_ = value;
+    };
+    *this << [this](const value_type& value) {
+      value_ = value;
+    };
   }
 
   auto operator<<(T* pointer) -> argument& {
-    this->pointer = pointer;
-    this->sync();
+    pointer_ = pointer;
+    sync();
     return *this;
   }
 
   auto operator<<(sh::name name) -> argument& {
-    this->name = name;
+    name_ = name;
     return *this;
   }
 
   auto operator<<(sh::desc desc) -> argument& {
-    this->desc = desc;
+    desc_ = desc;
     return *this;
   }
 
   auto operator<<(const value_type& value) -> argument& {
-    this->default_value = T{value};
-    this->default_value_repr = repr(value);
-    this->sync();
+    default_ = T{value};
+    default_repr_ = repr(value);
+    sync();
     return *this;
   }
 
   auto operator<<(const std::function<void(const value_type&)>& event) -> argument& {
-    events.emplace_back(event);
+    events_.emplace_back(event);
     return *this;
   }
 
+private:
   auto boolean() const -> bool final {
     return std::same_as<value_type, bool>;
   }
 
-  auto required() const -> bool final {
-    return !(is_specialization_v<T, std::optional> || default_value);
+  auto optional() const -> bool final {
+    return specialization<T, std::optional> || default_;
   }
 
   void validate() const final {
-    if (required() && !value) {
-      throw error("missing required argument: {}", names.front());
+    if (!(optional() || value_)) {
+      throw error("missing required argument: {}", names_.front());
     }
   }
 
-  void parse(std::string_view data) final {
+  void parse(std::optional<std::string_view> data) final {
     auto broadcast = [this](const value_type& value) {
-      for (const auto& event : events) {
+      for (const auto& event : events_) {
         event(value);
       }
     };
 
-    if (data == std::string_view()) {
+    if (data) {
+      const auto& view = trim(*data);
+      if (const auto value = sh::parse<value_type>(view)) {
+        broadcast(*value);
+      } else {
+        throw error("cannot parse argument data: {}", view);
+      }
+    } else {
       if constexpr (std::same_as<value_type, bool>) {
         broadcast(true);
       } else {
-        throw error("expected data for argument: {}", names.front());
-      }
-    } else {
-      data = trim(data);
-      if (const auto value = sh::parse<value_type>(data)) {
-        broadcast(*value);
-      } else {
-        throw error("cannot parse argument data: {}", data);
+        throw error("expected data for argument: {}", names_.front());
       }
     }
   }
 
-  T* pointer = nullptr;
-  std::optional<T> value;
-  std::optional<T> default_value;
-  std::vector<std::function<void(const value_type&)>> events;
+  T value() const {
+    if (value_) {
+      return *value_;
+    } else if (default_) {
+      return *default_;
+    } else if constexpr (specialization<T, std::optional>) {
+      return std::nullopt;
+    }
+    throw error("no argument data: {}", names_.front());
+  }
 
-private:
   void sync() {
-    if (pointer && default_value) {
-      *pointer = *default_value;
+    if (pointer_ && default_) {
+      *pointer_ = *default_;
     }
   }
+
+  T* pointer_ = nullptr;
+  std::optional<T> value_;
+  std::optional<T> default_;
+  std::vector<std::function<void(const value_type&)>> events_;
 };
 
 class clap {
@@ -229,7 +256,7 @@ public:
     auto positional_index = 0;
     auto positional_force = false;
     while (index < argc) {
-      const auto data = trim(argv[index++]);
+      const auto& data = trim(argv[index++]);
       if (data == "--" && !positional_force) {
         positional_force = true;
         continue;
@@ -243,7 +270,7 @@ public:
         } else if (index < argc && !argument->boolean()) {
           argument->parse(argv[index++]);
         } else {
-          argument->parse({});
+          argument->parse(std::nullopt);
         }
       } else {
         if (const auto argument = find(positional_index++)) {
@@ -270,49 +297,41 @@ public:
 
   template<argument_type T>
   auto get(std::string_view name) const -> T {
-    if (const auto argument = static_cast<sh::argument<T>*>(find(name))) {
-      if (argument->value) {
-        return *argument->value;
-      } else if (argument->default_value) {
-        return *argument->default_value;
-      } else if constexpr (is_specialization_v<T, std::optional>) {
-        return std::nullopt;
-      }
-      throw error("no argument data: {}", name);
+    if (const auto argument = find(name)) {
+      return static_cast<sh::argument<T>*>(argument)->value();
     }
     throw error("unknown argument:", name);
   }
 
   auto help() const -> std::string {
+    std::size_t padding = 0;
+    for (const auto& argument : arguments_) {
+      padding = std::max(padding, argument->names().size());
+    }
+
     std::vector<std::string> usage;
     if (!program_.empty()) {
       usage.emplace_back(program_);
     }
 
-    std::size_t widest = 0;
-    std::vector<std::tuple<std::string, std::string, bool>> lines;
+    struct group {
+      std::string_view caption;
+      std::string content;
+    };
+
+    std::array<group, 2> groups = { "keyword arguments", "positional arguments" };
     for (const auto& argument : arguments_) {
-      const auto names = fmt::to_string(fmt::join(argument->names, ", "));
-      lines.emplace_back(names, argument->description(), argument->positional());
-      usage.emplace_back(argument->help());
-      widest = std::max(widest, names.size());
+      auto& group = groups[argument->positional()];
+      group.content.append(fmt::format("\n  {:<{}}{}", argument->names(), padding + 4, argument->description()));
+      usage.emplace_back(argument->usage());
     }
 
-    std::string keyword;
-    std::string positional;
-    for (const auto& [names, description, is_positional] : lines) {
-      auto& group = is_positional ? positional : keyword;
-      group.append(fmt::format("\n  {:<{}}{}", names, widest + 4, description));
-    }
-
-    auto help(fmt::format("usage:\n  {}", fmt::join(usage, " ")));
-    if (!keyword.empty()) {
-      help.append("\n\nkeyword arguments:");
-      help.append(keyword);
-    }
-    if (!positional.empty()) {
-      help.append("\n\npositional arguments:");
-      help.append(positional);
+    auto help = fmt::format("usage:\n  {}", fmt::join(usage, " "));
+    for (const auto& [caption, content] : reversed(groups)) {
+      if (!content.empty()) {
+        help.append(fmt::format("\n\n{}:", caption));
+        help.append(content);
+      }
     }
     return help;
   }
@@ -321,7 +340,7 @@ private:
   auto find(std::string_view name) const -> basic_argument* {
     name = trim(name);
     for (const auto& argument : arguments_) {
-      if (contains(argument->names, name)) {
+      if (contains(argument->names_, name)) {
         return argument.get();
       }
     }

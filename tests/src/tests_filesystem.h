@@ -13,10 +13,6 @@ namespace tests_filesystem {
 namespace fs = sh::filesystem;
 
 inline suite _ = [] {
-  "filesystem program"_test = [] {
-    fmt::print("{}\n", fs::program());
-  };
-
   "filesystem read/write resizable"_test = [] {
     std::string src = "test";
     std::string dst;

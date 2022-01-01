@@ -21,6 +21,9 @@ concept move_assignable = std::assignable_from<T&, T&&>;
 template<typename T, typename U>
 concept different_from = !std::same_as<T, U>;
 
+template<typename T, template<typename...> typename Template>
+concept specialization = is_specialization_v<T, Template>;
+
 template<typename T, typename... Ts>
 concept any_of = is_any_of_v<T, Ts...>;
 
