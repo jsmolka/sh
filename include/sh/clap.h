@@ -100,7 +100,7 @@ public:
 
   virtual auto boolean() const -> bool = 0;
   virtual auto required() const -> bool = 0;
-  virtual auto satisfied() const -> bool = 0;
+  virtual void validate() const = 0;
   virtual void parse(std::string_view) = 0;
 
   std::vector<std::string_view> names;
@@ -114,13 +114,19 @@ class argument final : public basic_argument {
 public:
   using value_type = value_type_t<T>;
 
-  using basic_argument::basic_argument;
+  explicit argument(const std::vector<std::string_view>& names)
+    : basic_argument(names) {
+    events.emplace_back([this](const value_type& value) {
+      if (pointer) *pointer = value;
+    });
+    events.emplace_back([this](const value_type& value) {
+      this->value = value;
+    });
+  }
 
   auto operator<<(T* pointer) -> argument& {
-    if (pointer && default_value) {
-      *pointer = *default_value;
-    }
     this->pointer = pointer;
+    this->sync();
     return *this;
   }
 
@@ -135,16 +141,14 @@ public:
   }
 
   auto operator<<(const value_type& value) -> argument& {
-    if (pointer) {
-      *pointer = value;
-    }
-    default_value = T{value};
-    default_value_repr = repr(value);
+    this->default_value = T{value};
+    this->default_value_repr = repr(value);
+    this->sync();
     return *this;
   }
 
   auto operator<<(const std::function<void(const value_type&)>& event) -> argument& {
-    this->event = event;
+    events.emplace_back(event);
     return *this;
   }
 
@@ -156,40 +160,46 @@ public:
     return !(is_specialization_v<T, std::optional> || default_value);
   }
 
-  auto satisfied() const -> bool final {
-    return !required() || value;
+  void validate() const final {
+    if (required() && !value) {
+      throw error("missing required argument: {}", names.front());
+    }
   }
 
   void parse(std::string_view data) final {
-    value_type value;
+    auto broadcast = [this](const value_type& value) {
+      for (const auto& event : events) {
+        event(value);
+      }
+    };
+
     if (data == std::string_view()) {
       if constexpr (std::same_as<value_type, bool>) {
-        value = true;
+        broadcast(true);
       } else {
         throw error("expected data for argument: {}", names.front());
       }
     } else {
       data = trim(data);
-      if (const auto parsed = sh::parse<value_type>(data)) {
-        value = *parsed;
+      if (const auto value = sh::parse<value_type>(data)) {
+        broadcast(*value);
       } else {
         throw error("cannot parse argument data: {}", data);
       }
     }
-
-    if (event) {
-      event(value);
-    }
-    if (pointer) {
-      *pointer = value;
-    }
-    this->value = T{value};
   }
 
   T* pointer = nullptr;
   std::optional<T> value;
   std::optional<T> default_value;
-  std::function<void(const value_type&)> event;
+  std::vector<std::function<void(const value_type&)>> events;
+
+private:
+  void sync() {
+    if (pointer && default_value) {
+      *pointer = *default_value;
+    }
+  }
 };
 
 class clap {
@@ -225,11 +235,11 @@ public:
         continue;
       }
 
-      const auto pair = split(data, '=');
-      const auto argument = find(pair.front());
+      const auto kvp = split(data, '=');
+      const auto argument = find(kvp.front());
       if (argument && !argument->positional() && !positional_force) {
-        if (pair.size() == 2) {
-          argument->parse(pair.back());
+        if (kvp.size() == 2) {
+          argument->parse(kvp.back());
         } else if (index < argc && !argument->boolean()) {
           argument->parse(argv[index++]);
         } else {
@@ -243,7 +253,10 @@ public:
         }
       }
     }
-    validate();
+
+    for (const auto& argument : arguments_) {
+      argument->validate();
+    }
   }
 
   void try_parse(int argc, const char* const* argv) {
@@ -322,14 +335,6 @@ private:
       }
     }
     return nullptr;
-  }
-
-  void validate() {
-    for (const auto& argument : arguments_) {
-      if (!argument->satisfied()) {
-        throw error("missing required argument: {}", argument->names.front());
-      }
-    }
   }
 
   std::string_view program_;

@@ -139,9 +139,11 @@ inline suite _ = [] {
     const char* argv[] = {"program.exe", "-a", "1"};
     sh::clap parser("program");
     int a = 0;
-    parser.add<int>("-a") << [&](int value) { a = value; };
+    int b = 0;
+    parser.add<int>("-a") << [&](int value) { a = value; } << [&](int value) { b = value; };
     parser.parse(std::size(argv), argv);
     expect(eq(a, 1));
+    expect(eq(b, 1));
   };
 };
 
