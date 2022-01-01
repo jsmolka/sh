@@ -40,29 +40,12 @@ public:
   range(I begin, S end)
     : begin_(begin), end_(end) {}
 
-  [[nodiscard]] auto begin() -> I {
-    return begin_;
-  }
-
-  [[nodiscard]] auto end() -> S {
-    return end_;
-  }
-
-  [[nodiscard]] auto begin() const -> I {
-    return begin_;
-  }
-
-  [[nodiscard]] auto end() const -> S {
-    return end_;
-  }
-
-  [[nodiscard]] auto cbegin() const -> I {
-    return begin_;
-  }
-
-  [[nodiscard]] auto cend() const -> S {
-    return end_;
-  }
+  [[nodiscard]] auto begin()        -> I { return begin_; }
+  [[nodiscard]] auto end()          -> S { return end_;   }
+  [[nodiscard]] auto begin() const  -> I { return begin_; }
+  [[nodiscard]] auto end() const    -> S { return end_;   }
+  [[nodiscard]] auto cbegin() const -> I { return begin_; }
+  [[nodiscard]] auto cend() const   -> S { return end_;   }
 
 private:
   I begin_;
@@ -75,29 +58,12 @@ public:
   sentinel_range(I begin)
     : begin_(begin) {}
 
-  [[nodiscard]] auto begin() -> I {
-    return begin_;
-  }
-
-  [[nodiscard]] auto end() -> S {
-    return S{};
-  }
-
-  [[nodiscard]] auto begin() const -> I {
-    return begin_;
-  }
-
-  [[nodiscard]] auto end() const -> S {
-    return S{};
-  }
-
-  [[nodiscard]] auto cbegin() const -> I {
-    return begin_;
-  }
-
-  [[nodiscard]] auto cend() const -> S {
-    return S{};
-  }
+  [[nodiscard]] auto begin()        -> I { return begin_; }
+  [[nodiscard]] auto end()          -> S { return S{};    }
+  [[nodiscard]] auto begin() const  -> I { return begin_; }
+  [[nodiscard]] auto end() const    -> S { return S{};    }
+  [[nodiscard]] auto cbegin() const -> I { return begin_; }
+  [[nodiscard]] auto cend() const   -> S { return S{};    }
 
 private:
   I begin_;

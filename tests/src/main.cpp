@@ -8,4 +8,7 @@
 #include "tests_utility.h"
 #include "tests_vector.h"
 
-auto main() -> int {}
+auto main(int argc, char* argv[]) -> int {
+  sh::unused(argc);
+  sh::unused(argv);
+}

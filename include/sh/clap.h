@@ -195,13 +195,13 @@ protected:
       if (const auto value = sh::parse<value_type>(view)) {
         broadcast(*value);
       } else {
-        throw error("cannot parse argument data: {}", view);
+        throw error("invalid argument data: {}", view);
       }
     } else {
       if constexpr (std::same_as<value_type, bool>) {
         broadcast(true);
       } else {
-        throw error("expected data for argument: {}", names_.front());
+        throw error("missing argument data: {}", names_.front());
       }
     }
   }
@@ -215,7 +215,7 @@ private:
     } else if constexpr (specialization<T, std::optional>) {
       return std::nullopt;
     }
-    throw error("no argument data: {}", names_.front());
+    throw error("empty argument: {}", names_.front());
   }
 
   void sync() {
