@@ -11,8 +11,8 @@
 using namespace boost::ut;
 
 template<typename... Args>
-auto testf(std::string_view format, Args&&... args) {
+auto test(std::string_view format, Args&&... args) -> detail::test {
   static std::vector<std::string> names;
   const auto& name = names.emplace_back(fmt::format(fmt::runtime(format), std::forward<Args>(args)...));
-  return test(std::string_view(name.begin(), name.end()));
+  return boost::ut::test(std::string_view(name.begin(), name.end()));
 }

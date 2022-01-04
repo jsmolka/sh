@@ -20,8 +20,8 @@ using sh::s64;
 
 template<typename T>
 struct tests {
-  static auto test(std::string_view what) {
-    return testf("parse<{}> {}", typeid(T).name(), what);
+  static auto test(std::string_view what) -> detail::test {
+    return ::test("parse<{}> {}", typeid(T).name(), what);
   }
 };
 
@@ -62,7 +62,7 @@ struct tests_integer : tests<T> {
 
   static void run() {
     test("decimal") = [] {
-      const auto format = [](auto value) {
+      auto format = [](auto value) {
         return fmt::format("{}", value);
       };
       linear<std::string>(format);
@@ -70,7 +70,7 @@ struct tests_integer : tests<T> {
     };
 
     test("binary") = [] {
-      const auto format = [](auto value) {
+      auto format = [](auto value) {
         return fmt::format("{:#b}", value);
       };
       linear<std::string>(format);
@@ -78,7 +78,7 @@ struct tests_integer : tests<T> {
     };
 
     test("hexadecimal") = [] {
-      const auto format = [](auto value) {
+      auto format = [](auto value) {
         return fmt::format("{:#x}", value);
       };
       linear<std::string>(format);
@@ -110,14 +110,14 @@ struct tests_float : tests<T> {
 };
 
 inline suite _ = [] {
-  tests_integer<sh::u8>::run();
-  tests_integer<sh::u16>::run();
-  tests_integer<sh::u32>::run();
-  tests_integer<sh::u64>::run();
-  tests_integer<sh::s8>::run();
-  tests_integer<sh::s16>::run();
-  tests_integer<sh::s32>::run();
-  tests_integer<sh::s64>::run();
+  tests_integer<u8>::run();
+  tests_integer<u16>::run();
+  tests_integer<u32>::run();
+  tests_integer<u64>::run();
+  tests_integer<s8>::run();
+  tests_integer<s16>::run();
+  tests_integer<s32>::run();
+  tests_integer<s64>::run();
   tests_float<float>::run();
   tests_float<double>::run();
 

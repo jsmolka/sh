@@ -1,14 +1,13 @@
-#include "tests_array.h"
-#include "tests_clap.h"
-#include "tests_filesystem.h"
-#include "tests_hash.h"
-#include "tests_parse.h"
-#include "tests_ranges.h"
-#include "tests_stack.h"
-#include "tests_utility.h"
-#include "tests_vector.h"
+#include "tests/array.h"
+#include "tests/clap.h"
+#include "tests/filesystem.h"
+#include "tests/hash.h"
+#include "tests/parse.h"
+#include "tests/ranges.h"
+#include "tests/stack.h"
+#include "tests/utility.h"
+#include "tests/vector.h"
 
-auto main(int argc, char* argv[]) -> int {
-  sh::unused(argc);
-  sh::unused(argv);
+auto main() -> int {
+  return 0;
 }

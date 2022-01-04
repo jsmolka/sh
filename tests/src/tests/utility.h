@@ -12,7 +12,7 @@ using sh::u16;
 using sh::u32;
 using sh::u64;
 
-SH_NO_INLINE void test_unreachable(int x) {
+ SH_INLINE void test_unreachable(int x) {
   switch (x) {
     case 0:
       expect(true);
@@ -23,7 +23,7 @@ SH_NO_INLINE void test_unreachable(int x) {
   }
 }
 
-SH_INLINE void test_macros() {
+ SH_NO_INLINE void test_macros() {
   test_unreachable(0);
 }
 

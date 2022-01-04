@@ -17,15 +17,15 @@
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\tests_clap.h" />
-    <ClInclude Include="src\tests_array.h" />
-    <ClInclude Include="src\tests_filesystem.h" />
-    <ClInclude Include="src\tests_hash.h" />
-    <ClInclude Include="src\tests_parse.h" />
-    <ClInclude Include="src\tests_ranges.h" />
-    <ClInclude Include="src\tests_stack.h" />
-    <ClInclude Include="src\tests_utility.h" />
-    <ClInclude Include="src\tests_vector.h" />
+    <ClInclude Include="src\tests\clap.h" />
+    <ClInclude Include="src\tests\array.h" />
+    <ClInclude Include="src\tests\filesystem.h" />
+    <ClInclude Include="src\tests\hash.h" />
+    <ClInclude Include="src\tests\parse.h" />
+    <ClInclude Include="src\tests\ranges.h" />
+    <ClInclude Include="src\tests\stack.h" />
+    <ClInclude Include="src\tests\utility.h" />
+    <ClInclude Include="src\tests\vector.h" />
     <ClInclude Include="src\types.h" />
     <ClInclude Include="src\ut.h" />
   </ItemGroup>

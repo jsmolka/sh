@@ -16,8 +16,8 @@ template<typename T, std::size_t N>
 struct tests {
   using stack = sh::stack<T, N>;
 
-  static auto test(std::string_view what) {
-    return testf("stack<{}, {}>::{}", typeid(T).name(), N, what);
+  static auto test(std::string_view what) -> detail::test {
+    return ::test("stack<{}, {}>::{}", typeid(T).name(), N, what);
   }
 };
 

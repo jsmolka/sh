@@ -20,8 +20,8 @@ struct tests {
     return std::max(value, N);
   }
 
-  static auto test(std::string_view what) {
-    return testf("vector<{}, {}>::{}", typeid(T).name(), N, what);
+  static auto test(std::string_view what) -> detail::test {
+    return ::test("vector<{}, {}>::{}", typeid(T).name(), N, what);
   }
 };
 
