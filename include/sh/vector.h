@@ -317,6 +317,14 @@ public:
     head_ -= count;
   }
 
+  auto pop_back_value() -> value_type
+      requires move_constructible<value_type> {
+    assert(!empty());
+    auto value{std::move(back())};
+    pop_back();
+    return value;
+  }
+
 protected:
   using storage = std::aligned_storage_t<sizeof(value_type), alignof(value_type)>;
 
@@ -530,6 +538,7 @@ public:
   using base::emplace_back;
   using base::push_back;
   using base::pop_back;
+  using base::pop_back_value;
 
 protected:
   using typename base::storage;
@@ -687,6 +696,7 @@ public:
   using base::emplace_back;
   using base::push_back;
   using base::pop_back;
+  using base::pop_back_value;
 
 protected:
   using base::construct;

@@ -895,6 +895,27 @@ struct tests_pop_back : tests<T, N> {
 };
 
 template<typename T, std::size_t N>
+struct tests_pop_back_value : tests<T, N> {
+  using typename tests<T, N>::vector;
+  using tests<T, N>::capacity;
+  using tests<T, N>::test;
+
+  static void run() {
+    test("pop_back_value()") = [] {
+      if constexpr (sh::move_constructible<T>) {
+        vector vec1{};
+        vec1.emplace_back(0);
+        vec1.emplace_back(1);
+        expect(eq(vec1.size(), 2));
+        expect(eq(vec1.pop_back_value(), 1));
+        expect(eq(vec1.pop_back_value(), 0));
+        expect(eq(vec1.size(), 0));
+      }
+    };
+  }
+};
+
+template<typename T, std::size_t N>
 struct tests_swap : tests<T, N> {
   using typename tests<T, N>::vector;
   using tests<T, N>::capacity;
@@ -980,6 +1001,7 @@ inline suite _ = [] {
   run<tests_emplace_back>();
   run<tests_push_back>();
   run<tests_pop_back>();
+  run<tests_pop_back_value>();
   run<tests_swap>();
   run<tests_typenames>();
 };

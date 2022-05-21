@@ -45,12 +45,10 @@ public:
   using base::swap;
 
   [[nodiscard]] auto top() -> reference {
-    assert(!empty());
     return this->back();
   }
 
   [[nodiscard]] auto top() const -> const_reference {
-    assert(!empty());
     return this->back();
   }
 
@@ -81,21 +79,16 @@ public:
   }
 
   void pop() {
-    assert(!empty());
     this->pop_back();
   }
 
   void pop(std::size_t count) {
-    assert(count <= size());
     this->pop_back(count);
   }
 
   auto pop_value() -> value_type
       requires move_constructible<value_type> {
-    assert(!empty());
-    auto value{std::move(top())};
-    pop();
-    return value;
+    return this->pop_back_value();
   }
 };
 
