@@ -99,9 +99,8 @@ inline suite _ = [] {
   "clap unmatched positional argument"_test = [] {
     const char* argv[] = {"program.exe", "x"};
     sh::clap parser("program");
-    expect(throws([&]() {
-      parser.parse(std::size(argv), argv);
-    }));
+    parser.parse(std::size(argv), argv);
+    expect(eq(parser.unmatched[0], std::string("x")));
   };
 
   "clap trim"_test = [] {

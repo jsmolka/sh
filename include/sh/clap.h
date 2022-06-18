@@ -277,7 +277,7 @@ public:
         if (const auto argument = find(pos_index++)) {
           argument->parse(data);
         } else {
-          throw error("unmatched positional argument: {}", data);
+          unmatched.emplace_back(data);
         }
       }
     }
@@ -336,6 +336,8 @@ public:
     }
     return help;
   }
+
+  std::vector<std::string> unmatched;
 
 private:
   auto find(std::string_view name) const -> basic_argument* {
