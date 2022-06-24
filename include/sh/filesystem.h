@@ -42,7 +42,7 @@ concept resizable = requires(T&& t) {
 enum class status { ok, bad_file, bad_stream, bad_size };
 
 template<contiguous_byte_container Container>
-status read(const path& file, Container& dst) {
+auto read(const path& file, Container& dst) -> status {
   std::ifstream stream(file, std::ios::binary);
   if (!stream.is_open()) {
     return status::bad_file;
@@ -66,13 +66,13 @@ status read(const path& file, Container& dst) {
 }
 
 template<contiguous_byte_container Container>
-std::tuple<status, Container> read(const path& file) {
+auto read(const path& file) -> std::tuple<status, Container> {
   Container data{};
   return std::make_tuple(read(file, data), data);
 }
 
 template<contiguous_byte_container Container>
-status write(const path& file, const Container& src) {
+auto write(const path& file, const Container& src) -> status {
   std::error_code ec;
   create_directories(file.parent_path(), ec);
 
@@ -90,7 +90,7 @@ status write(const path& file, const Container& src) {
   return status::ok;
 }
 
-inline path program() {
+inline auto program() -> path {
 #if SH_OS_WINDOWS
   WCHAR buffer[MAX_PATH];
   GetModuleFileNameW(NULL, buffer, MAX_PATH);
@@ -122,11 +122,11 @@ inline path program() {
 #endif
 }
 
-inline path absolute(const path& path) {
+inline auto absolute(const path& path) -> filesystem::path {
   return path.is_relative() ? program().parent_path() / path : path;
 }
 
-inline path absolute(const path& path, std::error_code&) {
+inline auto absolute(const path& path, std::error_code&) -> filesystem::path {
   return filesystem::absolute(path);
 }
 
