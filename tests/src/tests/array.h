@@ -6,6 +6,11 @@
 
 namespace tests_array {
 
+template<std::size_t kIndex>
+int square() {
+  return kIndex * kIndex;
+}
+
 inline suite _ = [] {
   "array"_test = [] {
     sh::array<int, 2, 2> array = {{{1, 2}, {3, 4}}};
@@ -16,8 +21,8 @@ inline suite _ = [] {
   };
 
   "make_array"_test = [] {
-    static constexpr auto kArray = sh::make_array<int, 4>([]<std::size_t kIndex>() -> int {
-      return 2 * kIndex;
+    static constexpr auto kArray = sh::make_array<int, 4>([](std::size_t index) -> int {
+      return 2 * index;
     });
     expect(eq(kArray[0], 0));
     expect(eq(kArray[1], 2));
