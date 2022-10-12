@@ -10,7 +10,7 @@ namespace {
 
 template<typename Callback, typename T>
 concept make_array_callback = requires(Callback&& callback) {
-  { std::invoke(std::forward<Callback>(callback), std::size_t{}) } -> std::same_as<T>;
+  { callback.template operator()<std::size_t{}>() } -> std::same_as<T>;
 };
 
 }  // namespace
@@ -29,7 +29,7 @@ struct array<T, kSize> {
 
 template<typename T, make_array_callback<T> Callback, std::size_t... kIs>
 constexpr auto make_array(Callback&& callback, std::index_sequence<kIs...>) -> std::array<T, sizeof...(kIs)> {
-  return {callback(kIs)...};
+  return {callback.template operator()<kIs>()...};
 }
 
 }  // namespace detail

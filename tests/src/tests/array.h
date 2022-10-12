@@ -16,8 +16,8 @@ inline suite _ = [] {
   };
 
   "make_array"_test = [] {
-    static constexpr auto kArray = sh::make_array<int, 4>([](std::size_t index) -> int {
-      return 2 * index;
+    static constexpr auto kArray = sh::make_array<int, 4>([]<std::size_t kIndex>() -> int {
+      return 2 * kIndex;
     });
     expect(eq(kArray[0], 0));
     expect(eq(kArray[1], 2));
