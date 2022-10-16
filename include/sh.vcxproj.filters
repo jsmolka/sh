@@ -69,5 +69,8 @@
     <ClInclude Include="sh\clap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="sh\args.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

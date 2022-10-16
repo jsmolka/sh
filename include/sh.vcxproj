@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="sh\args.h" />
     <ClInclude Include="sh\clap.h" />
     <ClInclude Include="sh\array.h" />
     <ClInclude Include="sh\concepts.h" />
