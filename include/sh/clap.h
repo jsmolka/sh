@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <vector>
-
 #include <sh/concepts.h>
 #include <sh/error.h>
 #include <sh/filesystem.h>

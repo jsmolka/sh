@@ -1,7 +1,6 @@
 #pragma once
 
 #include <ranges>
-
 #include <sh/iterator.h>
 
 namespace sh {

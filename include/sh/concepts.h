@@ -1,7 +1,6 @@
 #pragma once
 
 #include <concepts>
-
 #include <sh/traits.h>
 
 namespace sh {

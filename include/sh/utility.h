@@ -3,7 +3,6 @@
 #include <cassert>
 #include <cstddef>
 #include <utility>
-
 #include <sh/env.h>
 #include <sh/int.h>
 

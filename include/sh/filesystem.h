@@ -4,7 +4,6 @@
 #include <filesystem>
 #include <fstream>
 #include <tuple>
-
 #include <sh/env.h>
 #include <sh/fmt.h>
 #include <sh/parse.h>

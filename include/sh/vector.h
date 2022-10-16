@@ -6,7 +6,6 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
-
 #include <sh/concepts.h>
 
 namespace sh {

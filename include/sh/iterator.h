@@ -2,7 +2,6 @@
 
 #include <iterator>
 #include <utility>
-
 #include <sh/concepts.h>
 
 namespace sh {

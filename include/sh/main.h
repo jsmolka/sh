@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-
 #include <sh/windows.h>
 
 #if SH_CC_MSVC
