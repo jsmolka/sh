@@ -967,6 +967,28 @@ struct tests_typenames : tests<T, N> {
   }
 };
 
+template<typename T, std::size_t N>
+struct tests_operator_plus : tests<T, N> {
+  using typename tests<T, N>::vector;
+  using tests<T, N>::test;
+
+  static void run() {
+    test("operator+(const vector&, const vector&)") = [] {
+      if constexpr (sh::move_constructible<T> && sh::move_assignable<T> && sh::copy_constructible<T>) {
+        vector vec1{};
+        vec1.emplace_back(0);
+        vec1.emplace_back(1);
+        vec1.emplace_back(2);
+        vector vec2{};
+        vec2.emplace_back(0);
+        vec2.emplace_back(1);
+        vec2.emplace_back(2);
+        expect(eq(vec1 + vec2, vector{0, 1, 2, 0, 1, 2}));
+      }
+    };
+  }
+};
+
 template<template<typename, std::size_t> typename Test, typename T>
 void run() {
   Test<T, 0>::run();
@@ -1004,6 +1026,7 @@ inline suite _ = [] {
   run<tests_pop_back_value>();
   run<tests_swap>();
   run<tests_typenames>();
+  run<tests_operator_plus>();
 };
 
 }  // namespace tests_vector

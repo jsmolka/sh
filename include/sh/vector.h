@@ -731,4 +731,13 @@ auto operator!=(const vector<T, kSizeA>& a, const vector<T, kSizeB>& b) -> bool 
   return !(a == b);
 }
 
+template<typename T, std::size_t kSize>
+auto operator+(const vector<T, kSize>& a, const vector<T, kSize>& b) -> vector<T, kSize> {
+  vector<T, kSize> result;
+  result.reserve(a.size() + b.size());
+  result.insert(result.end(), a.begin(), a.end());
+  result.insert(result.end(), b.begin(), b.end());
+  return result;
+}
+
 }  // namespace sh
