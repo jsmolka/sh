@@ -64,6 +64,11 @@ inline suite _ = [] {
       int v = 0;
     };
 
+    auto test = [&]() SH_INLINE_LAMBDA {
+      expect(true);
+    };
+    test();
+
     reconstruct r;
     expect(eq(r.v, 0));
     sh::reconstruct(r, 1);

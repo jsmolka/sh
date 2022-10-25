@@ -10,9 +10,11 @@ namespace sh {
 
 #if SH_CC_MSVC
 #  define SH_INLINE __forceinline
+#  define SH_INLINE_LAMBDA [[msvc::forceinline]]
 #  define SH_NO_INLINE __declspec(noinline)
 #else
 #  define SH_INLINE inline __attribute__((always_inline))
+#  define SH_INLINE_LAMBDA __attribute__((always_inline))
 #  define SH_NO_INLINE __attribute__((noinline))
 #endif
 
