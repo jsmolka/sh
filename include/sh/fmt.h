@@ -12,8 +12,6 @@
 #include <sh/deps/fmt/include/fmt/core.h>
 #include <sh/deps/fmt/include/fmt/format.h>
 #include <sh/deps/fmt/include/fmt/os.h>
-#include <sh/deps/fmt/include/fmt/ostream.h>
-#include <sh/deps/fmt/include/fmt/printf.h>
 #include <sh/deps/fmt/include/fmt/ranges.h>
 #include <sh/deps/fmt/include/fmt/xchar.h>
 

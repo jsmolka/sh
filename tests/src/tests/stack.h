@@ -6,8 +6,8 @@
 #include "ut.h"
 
 template<typename T, std::size_t N>
-auto operator<<(std::ostream& out, const sh::stack<T, N>& vector) -> std::ostream& {
-  return out << fmt::format("[{}]", fmt::join(vector, ", "));
+auto operator<<(std::ostream& out, const sh::stack<T, N>& stack) -> std::ostream& {
+  return out << fmt::format("[{}]", fmt::join(stack, ", "));
 }
 
 namespace tests_stack {
@@ -65,7 +65,9 @@ struct tests_push : tests<T, N> {
         stk1.push(v1);
         stk1.push(v2);
         stk1.push(v3);
-        expect(eq(stk1, stack{0, 1, 2}));
+        expect(eq(stk1[0], v1));
+        expect(eq(stk1[1], v2));
+        expect(eq(stk1[2], v3));
       }
     };
 
